@@ -3,7 +3,6 @@ import './App.css'
 
 function App() {
   const [totalXP, setTotalXP] = useState(350)
-  const xpRequired = 500
 
   let level = 1
   let xpForNextLevel = 500
@@ -19,6 +18,45 @@ function App() {
   const remainingXP = xpForNextLevel - currentXP
   const progress = (currentXP / xpForNextLevel) * 100
 
+  const [quests, setQuests] = useState([
+    {
+      id: 1,
+      title: 'Complete a workout',
+      category: 'FITNESS',
+      xp: 100,
+      completed: false,
+    },
+    {
+      id: 2,
+      title: 'Study for 1 hour',
+      category: 'KNOWLEDGE',
+      xp: 75,
+      completed: false,
+    },
+    {
+      id: 3,
+      title: 'Read for 20 minutes',
+      category: 'DISCIPLINE',
+      xp: 25,
+      completed: false,
+    },])
+
+
+  function completeQuest(questId) {
+    const targetQuest = quests.find((q) => q.id === questId)
+
+    if (!targetQuest || targetQuest.completed) {
+      return
+    }
+
+    setQuests((previousQuests) =>
+      previousQuests.map((q) =>
+        q.id === questId ? { ...q, completed: true } : q
+      )
+    )
+
+    setTotalXP((previousXP) => previousXP + targetQuest.xp)
+  }
   return (
     <main>
       <header>
@@ -79,6 +117,40 @@ function App() {
         </div>
       </section>
 
+      <section className='quests-panel'>
+        <div className='quests-header'>
+          <h2>Daily Quests</h2>
+          <span className='quests-count'>
+            {quests.filter(q => q.completed).length} / {quests.length} COMPLETED
+          </span>
+        </div>
+
+        <div className='quests-list'>
+          {quests.map((quest) => (
+            <article
+              className={`quest-card ${quest.completed ? 'completed' : ''}`}
+              key={quest.id}
+            >
+              <div className='quest-info'>
+                <p className='quest-category'>{quest.category}</p>
+                <h3>{quest.title}</h3>
+              </div>
+
+              <div className='quest-actions'>
+                <span className='quest-reward'>+{quest.xp} XP</span>
+
+                <button
+                  className='quest-btn'
+                  onClick={() => completeQuest(quest.id)}
+                  disabled={quest.completed}
+                >
+                  {quest.completed ? 'CLAIMED' : 'COMPLETE'}
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
     </main>
   )
 }

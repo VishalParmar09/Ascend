@@ -163,6 +163,129 @@ section p {
   background: #20324b;
 }
 
+
+.quests-panel {
+  margin-top: 24px;
+}
+
+.quests-panel h2 {
+  margin-bottom: 24px;
+}
+
+.quests-list {
+  display: grid;
+  gap: 12px;
+}
+
+.quest-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  transition: border-color 180ms ease;
+}
+
+.quest-card:hover {
+  border-color: var(--accent);
+}
+
+.quest-category {
+  margin: 0 0 8px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.quest-info h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.quest-reward {
+  flex-shrink: 0;
+  margin: 0;
+  color: var(--accent);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+@media (max-width: 480px) {
+  .quest-card {
+    padding: 16px;
+  }
+
+  .quest-info h3 {
+    font-size: 14px;
+  }
+}
+
+/* Quests Header with Counter */
+.quests-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.quests-count {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--accent);
+}
+
+/* Actions area inside card */
+.quest-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Complete Button */
+.quest-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  background: rgba(99, 179, 255, 0.1);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  transition: all 180ms ease;
+}
+
+.quest-btn:hover:not(:disabled) {
+  background: var(--accent);
+  color: #080c14;
+  box-shadow: 0 0 12px rgba(99, 179, 255, 0.4);
+}
+
+/* Completed Quest State */
+.quest-card.completed {
+  border-color: rgba(38, 54, 80, 0.4);
+  background: rgba(16, 24, 39, 0.35);
+  opacity: 0.65;
+}
+
+.quest-card.completed h3 {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.quest-btn:disabled {
+  border-color: var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: not-allowed;
+}
+
 @media (max-width: 600px) {
   .stats-grid {
     grid-template-columns: 1fr;
