@@ -321,6 +321,204 @@ section p {
   border-color: #ef4444 !important;
 }
 
+
+/* App Navbar */
+.app-navbar {
+  margin-bottom: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.navbar-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.brand-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.system-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.pulsing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  animation: pulseDot 1.5s infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+.brand-title {
+  margin: 0;
+  font-size: 2rem;
+  letter-spacing: 1px;
+}
+
+/* Streak Badge */
+.streak-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid rgba(249, 115, 22, 0.4);
+  border-radius: 999px;
+  background: rgba(249, 115, 22, 0.1);
+  color: #fb923c;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  box-shadow: 0 0 14px rgba(249, 115, 22, 0.15);
+}
+
+/* Nav Tabs */
+.nav-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  overflow-x: auto;
+}
+
+.nav-tab-btn {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 180ms ease;
+}
+
+.nav-tab-btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.nav-tab-btn.active {
+  color: var(--accent);
+  background: rgba(99, 179, 255, 0.12);
+  border: 1px solid rgba(99, 179, 255, 0.3);
+}
+
+/* Panel Header */
+.panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.panel-header h2 {
+  margin: 0;
+}
+
+.system-id {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+}
+
+/* Attributes Section */
+.attributes-section {
+  margin-top: 24px;
+}
+
+.attributes-heading {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+}
+
+.attributes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+}
+
+.attribute-card {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(8, 12, 20, 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.attr-tag {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+.attr-name {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.attr-value {
+  color: var(--text);
+  font-size: 20px;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+/* XP Footer & Discrete Reset */
+.xp-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+}
+
+.xp-footer .xp-remaining {
+  margin: 0;
+}
+
+.discrete-reset-btn {
+  background: transparent;
+  border: none;
+  color: #64748b;
+  font-size: 11px;
+  cursor: pointer;
+  text-decoration: underline;
+  transition: color 180ms ease;
+}
+
+.discrete-reset-btn:hover {
+  color: #ef4444;
+}
+
+/* Coming Soon Panel */
+.coming-soon-panel {
+  padding: 60px 24px;
+  text-align: center;
+}
+
 @media (max-width: 600px) {
   .stats-grid {
     grid-template-columns: 1fr;
