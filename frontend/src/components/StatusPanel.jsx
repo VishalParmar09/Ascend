@@ -9,6 +9,7 @@ export default function StatusPanel({
   remainingXP,
   progress,
   stats,
+  onOpenCalibration,
   onResetProgress
 }) {
   const attributeList = [
@@ -27,7 +28,7 @@ export default function StatusPanel({
       </div>
 
       {/* 3 Top HUD Cards */}
-      <div className="stats-grid">
+      <div id="tour-hud" className="stats-grid">
         {/* Card 1: Current Rank */}
         <article
           className="stat-card"
@@ -120,8 +121,13 @@ export default function StatusPanel({
       </div>
 
       {/* Core Attributes Sheet */}
-      <div className="attributes-section">
-        <p className="attributes-heading">CORE ATTRIBUTES</p>
+      <div id="tour-attributes" className="attributes-section">
+        <div className="attributes-header">
+          <p className="attributes-heading">CORE ATTRIBUTES</p>
+          <button onClick={onOpenCalibration} className="recalibrate-btn">
+            ⚡ RE-EVALUATE STATS
+          </button>
+        </div>
         <div className="attributes-grid">
           {attributeList.map(attr => (
             <div key={attr.key} className="attribute-card">

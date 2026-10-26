@@ -21,7 +21,7 @@ export default function Header({ streak, activeTab, setActiveTab }) {
         </div>
 
         {/* Hunter Streak Counter */}
-        <div className="streak-badge" title="Consecutive active days">
+        <div id="tour-streak" className="streak-badge" title="Consecutive active days">
           <span className="streak-icon">🔥</span>
           <span className="streak-text">{streak} DAY STREAK</span>
         </div>
@@ -32,6 +32,7 @@ export default function Header({ streak, activeTab, setActiveTab }) {
         {tabs.map(tab => (
           <button
             key={tab.id}
+            id={tab.id === 'evaluation' ? 'tour-eval-tab' : undefined}
             className={`nav-tab-btn ${activeTab === tab.id ? 'active' : ''}`}
             onClick={() => setActiveTab(tab.id)}
           >

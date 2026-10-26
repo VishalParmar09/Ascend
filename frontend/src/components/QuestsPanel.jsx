@@ -2,7 +2,7 @@ export default function QuestsPanel({ quests, onCompleteQuest }) {
   const completedCount = quests.filter(q => q.completed).length;
 
   return (
-    <section className='quests-panel'>
+    <section id="tour-quests" className='quests-panel'>
       <div className='quests-header'>
         <h2>Daily Quests</h2>
         <span className='quests-count'>
