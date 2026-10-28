@@ -34,7 +34,7 @@ export default function AwakeningModal({ isOpen, onClose, onComplete }) {
     { id: 'aesthetic', title: 'Athletic & Aesthetic (Lean Muscle)', desc: 'Build functional agility, sharp definition, and a Jin-woo physique' },
     { id: 'strength', title: 'Maximum Strength & Mass', desc: 'Heavy lifting, pure muscle hypertrophy, and size' },
     { id: 'fatloss', title: 'Fat Loss & Conditioning', desc: 'Burn calories, enhance stamina, and strip body fat' },
-    { id: 'health', title: 'Healthy Student Routine', desc: 'Maintain energy, fix posture, and stay active without an extreme diet' },
+    { id: 'health', title: 'General Health & Vitality', desc: 'Maintain daily energy, fix sedentary posture, and stay active without an extreme diet' },
   ];
 
   // Step 3: Push-ups (No stat spoilers!)

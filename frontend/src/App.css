@@ -1165,7 +1165,6 @@ input[type=number] {
   width: 100%;
   height: 100%;
   pointer-events: none;
-  /* Allows interacting only with tour controls */
   z-index: 2000;
 }
 
@@ -1174,7 +1173,6 @@ input[type=number] {
   position: absolute;
   border-radius: 12px;
   border: 2px solid var(--accent);
-  /* The Magic CSS Trick: Dims the rest of the entire website */
   box-shadow: 0 0 0 9999px rgba(4, 7, 14, 0.85), 0 0 25px rgba(99, 179, 255, 0.6);
   pointer-events: none;
   transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -1207,7 +1205,33 @@ input[type=number] {
   gap: 10px;
   pointer-events: auto;
   z-index: 2010;
-  transition: all 300ms ease;
+  transition: top 300ms ease, left 300ms ease;
+}
+
+/* Pointer Arrow */
+.tour-tooltip-arrow {
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  background: #0b1322;
+  border: 1px solid var(--accent);
+  transform: rotate(45deg);
+  z-index: 2011;
+  box-shadow: 0 0 8px rgba(99, 179, 255, 0.3);
+}
+
+/* When tooltip is below target: arrow points UP */
+.tour-tooltip.bottom .tour-tooltip-arrow {
+  top: -8px;
+  border-bottom: none;
+  border-right: none;
+}
+
+/* When tooltip is above target: arrow points DOWN */
+.tour-tooltip.top .tour-tooltip-arrow {
+  bottom: -8px;
+  border-top: none;
+  border-left: none;
 }
 
 .tour-tooltip-tag {
@@ -1282,6 +1306,627 @@ input[type=number] {
   background: #10b981;
   border-color: #10b981;
   box-shadow: 0 0 14px rgba(16, 185, 129, 0.4);
+}
+
+/* ================= TRAINING PLAN TAB STYLES ================= */
+.training-panel {
+  padding: 28px;
+  border: 1px solid var(--border);
+  background: linear-gradient(135deg, #101827, #0b1322);
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.training-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.training-tag {
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.change-plan-btn {
+  padding: 6px 14px;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+
+.change-plan-btn:hover {
+  border-color: var(--accent);
+}
+
+/* Mode Selection Screen */
+.mode-selection-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-top: 12px;
+}
+
+.mode-card {
+  padding: 28px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(16, 24, 39, 0.6);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: all 180ms ease;
+}
+
+.mode-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 0 20px rgba(99, 179, 255, 0.2);
+}
+
+.mode-icon {
+  font-size: 32px;
+}
+
+.mode-card h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.mode-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.mode-action-btn {
+  margin-top: auto;
+  align-self: flex-start;
+  padding: 8px 16px;
+  border: 1px solid var(--accent);
+  background: rgba(99, 179, 255, 0.1);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* Generator & Custom Forms */
+.generator-form-box {
+  padding: 24px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(8, 12, 20, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.form-header h3 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.text-cancel-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.form-group-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-group-block label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: var(--muted);
+}
+
+.toggle-options-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.toggle-box {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(16, 24, 39, 0.5);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all 180ms ease;
+}
+
+.toggle-box:hover {
+  border-color: rgba(99, 179, 255, 0.5);
+}
+
+.toggle-box.active {
+  border-color: var(--accent);
+  background: rgba(99, 179, 255, 0.12);
+  box-shadow: 0 0 14px rgba(99, 179, 255, 0.2);
+}
+
+.toggle-box strong {
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.toggle-box span {
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.submit-plan-btn {
+  padding: 14px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #080c14;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(99, 179, 255, 0.35);
+  transition: all 180ms ease;
+}
+
+.submit-plan-btn:hover {
+  box-shadow: 0 0 28px rgba(99, 179, 255, 0.5);
+}
+
+/* Custom Days Builder */
+.custom-days-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.custom-day-card {
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(16, 24, 39, 0.4);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.day-title-input {
+  padding: 10px;
+  border: 1px solid var(--border);
+  background: #080c14;
+  color: var(--text);
+  font-weight: 700;
+  border-radius: 6px;
+  font-size: 1rem;
+}
+
+.custom-exercises-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.custom-ex-row {
+  display: flex;
+  gap: 8px;
+}
+
+.custom-ex-row input {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  background: #080c14;
+  color: var(--text);
+  border-radius: 6px;
+  font-size: 0.9rem;
+  flex: 1;
+}
+
+.small-num-input {
+  max-width: 80px;
+}
+
+.small-text-input {
+  max-width: 110px;
+}
+
+.add-ex-btn,
+.add-day-btn {
+  align-self: flex-start;
+  padding: 6px 12px;
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+/* ================= ACTIVE TRAINING PLAN VIEW ================= */
+.active-plan-view {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  animation: fadeIn 0.3s ease;
+}
+
+/* 1. Plan Banner */
+.plan-banner {
+  padding: 24px 28px;
+  border: 1px solid rgba(99, 179, 255, 0.25);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(16, 24, 39, 0.85), rgba(11, 19, 34, 0.75));
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.active-indicator {
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  display: inline-block;
+  margin-bottom: 6px;
+}
+
+.plan-title {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: #f8fafc;
+}
+
+.workout-status-badge {
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.workout-status-badge.completed {
+  background: rgba(16, 185, 129, 0.15);
+  border: 1px solid #10b981;
+  color: #10b981;
+  box-shadow: 0 0 12px rgba(16, 185, 129, 0.2);
+}
+
+.workout-status-badge.pending {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.6);
+  color: #f59e0b;
+}
+
+/* 2. Schedule Day Tabs */
+.schedule-day-tabs {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 4px 2px 6px;
+  scrollbar-width: thin;
+}
+
+.schedule-day-tabs::-webkit-scrollbar {
+  height: 4px;
+}
+
+.schedule-day-tabs::-webkit-scrollbar-track {
+  background: rgba(16, 24, 39, 0.3);
+}
+
+.schedule-day-tabs::-webkit-scrollbar-thumb {
+  background: rgba(99, 179, 255, 0.2);
+  border-radius: 4px;
+}
+
+.schedule-tab-btn {
+  padding: 10px 18px;
+  border: 1px solid rgba(99, 179, 255, 0.18);
+  background: rgba(16, 24, 39, 0.65);
+  color: var(--muted);
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  transition: all 180ms ease;
+  user-select: none;
+}
+
+.schedule-tab-btn:hover {
+  border-color: rgba(99, 179, 255, 0.45);
+  color: var(--text);
+  background: rgba(22, 34, 56, 0.6);
+}
+
+.schedule-tab-btn.active {
+  border-color: var(--accent);
+  background: rgba(99, 179, 255, 0.15);
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(99, 179, 255, 0.25);
+}
+
+.schedule-tab-btn.current-day-highlight {
+  border-color: #f59e0b;
+  position: relative;
+}
+
+.schedule-tab-btn.current-day-highlight small {
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+/* 3. Workout Day Card & Exercise Checklist */
+.workout-day-card {
+  padding: 28px;
+  border: 1px solid rgba(99, 179, 255, 0.2);
+  border-radius: 12px;
+  background: rgba(8, 12, 20, 0.6);
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+}
+
+.workout-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(99, 179, 255, 0.12);
+}
+
+.workout-day-header h4 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #f8fafc;
+  letter-spacing: 0.5px;
+}
+
+.ex-count {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-top: 5px;
+  display: block;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.set-active-day-btn {
+  padding: 10px 18px;
+  border: 1px solid rgba(99, 179, 255, 0.35);
+  background: rgba(99, 179, 255, 0.08);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 180ms ease;
+}
+
+.set-active-day-btn:hover {
+  background: rgba(99, 179, 255, 0.18);
+  border-color: var(--accent);
+  box-shadow: 0 0 14px rgba(99, 179, 255, 0.3);
+}
+
+.finish-session-btn {
+  padding: 12px 24px;
+  border: 1px solid var(--accent);
+  background: var(--accent);
+  color: #080c14;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 0 16px rgba(99, 179, 255, 0.35);
+  transition: all 180ms ease;
+}
+
+.finish-session-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 0 24px rgba(99, 179, 255, 0.55);
+}
+
+.finish-session-btn.completed {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.4);
+  color: #10b981;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.exercises-table {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.exercise-row {
+  padding: 16px 20px;
+  border: 1px solid rgba(99, 179, 255, 0.14);
+  background: rgba(16, 24, 39, 0.65);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  cursor: pointer;
+  transition: all 180ms ease;
+  user-select: none;
+}
+
+.exercise-row:hover {
+  border-color: rgba(99, 179, 255, 0.45);
+  background: rgba(22, 34, 56, 0.7);
+  transform: translateX(4px);
+}
+
+.exercise-row.done {
+  border-color: rgba(16, 185, 129, 0.45);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.exercise-row.done .ex-name {
+  text-decoration: line-through;
+  color: var(--muted);
+}
+
+.ex-check {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1.5px solid rgba(99, 179, 255, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--muted);
+  flex-shrink: 0;
+  transition: all 150ms ease;
+}
+
+.exercise-row.done .ex-check {
+  background: #10b981;
+  border-color: #10b981;
+  color: #080c14;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+}
+
+.ex-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.ex-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #f8fafc;
+  letter-spacing: 0.3px;
+}
+
+.ex-stat {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.ex-metrics {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.metric-pill {
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: rgba(99, 179, 255, 0.08);
+  border: 1px solid rgba(99, 179, 255, 0.22);
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.rest-pill {
+  padding: 6px 12px;
+  border-radius: 6px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: #f59e0b;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.wizard-intro-box {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.wizard-header h3 {
+  margin: 0 0 6px;
+  font-size: 1.3rem;
+  color: #fff;
+}
+
+.wizard-header p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.days-selector-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
 }
 
 @media (max-width: 600px) {
