@@ -55,8 +55,22 @@ export default function App() {
   });
 
   const [currentWorkoutDayIndex, setCurrentWorkoutDayIndex] = useState(() => {
+    const today = new Intl.DateTimeFormat('en-CA').format(new Date());
+    const lastActiveDate = localStorage.getItem('ascend_last_active_date');
     const saved = localStorage.getItem('ascend_workout_day_index');
-    return saved !== null ? Number(saved) : 0;
+    let index = saved !== null ? Number(saved) : 0;
+
+    // When day rolls over to tomorrow and yesterday's workout was finished, advance split!
+    if (lastActiveDate && lastActiveDate !== today) {
+      const lastWorkoutDate = localStorage.getItem('ascend_last_workout_date');
+      const savedPlan = localStorage.getItem('ascend_active_plan');
+      const plan = savedPlan ? JSON.parse(savedPlan) : null;
+      if (lastWorkoutDate === lastActiveDate && plan?.schedule?.length > 0) {
+        index = (index + 1) % plan.schedule.length;
+        localStorage.setItem('ascend_workout_day_index', index);
+      }
+    }
+    return index;
   });
 
   // Track if today's workout session has been finished
@@ -166,16 +180,35 @@ export default function App() {
     }
   }
 
-  // Complete Workout from Training Plan Tab (Two-Way Sync!)
-  function handleCompleteWorkoutSession() {
+  // Complete Workout from Training Plan Tab (Two-Way Sync + Level Progress + History Log!)
+  function handleCompleteWorkoutSession(summary) {
     if (isWorkoutCompletedToday) return;
 
     const today = new Intl.DateTimeFormat('en-CA').format(new Date());
     setIsWorkoutCompletedToday(true);
     localStorage.setItem('ascend_last_workout_date', today);
 
-    // Mark the dashboard workout quest (id: 1) as completed
+    // Mark the dashboard workout quest (id: 1) as completed (+100 Hunter XP)
     handleCompleteQuest(1);
+
+    // Record to workout logs history
+    try {
+      const saved = localStorage.getItem('ascend_workout_history');
+      const history = saved ? JSON.parse(saved) : [];
+      history.unshift({
+        id: 'log_' + Date.now(),
+        date: today,
+        timestamp: new Date().toISOString(),
+        workoutName: summary?.workoutName || activePlan?.schedule?.[currentWorkoutDayIndex]?.dayName || 'Workout Session',
+        durationSeconds: summary?.durationSeconds || 0,
+        completedSets: summary?.completedSets || 0,
+        totalSets: summary?.totalSets || 0,
+        xpGained: 100
+      });
+      localStorage.setItem('ascend_workout_history', JSON.stringify(history));
+    } catch (e) {
+      console.error("Failed to save workout history log", e);
+    }
 
     // Advance to next day in cycle for tomorrow
     if (activePlan?.schedule?.length > 0) {

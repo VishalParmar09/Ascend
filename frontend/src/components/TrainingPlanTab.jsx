@@ -1,6 +1,7 @@
 // src/components/TrainingPlanTab.jsx
 import { useState, useEffect } from 'react';
 import { generateWorkoutPlan } from '../utils/trainingPlanGenerator';
+import ActiveWorkoutModal from './ActiveWorkoutModal';
 
 export default function TrainingPlanTab({
     activePlan,
@@ -12,6 +13,14 @@ export default function TrainingPlanTab({
 }) {
     // If user has no plan, default to 'select' wizard screen!
     const [viewMode, setViewMode] = useState(activePlan ? 'view' : 'select');
+    const [viewSubTab, setViewSubTab] = useState('schedule'); // 'schedule' or 'logs'
+    const [isWorkoutModalOpen, setIsWorkoutModalOpen] = useState(false);
+
+    // Workout History Logs
+    const [workoutLogs, setWorkoutLogs] = useState(() => {
+        const saved = localStorage.getItem('ascend_workout_history');
+        return saved ? JSON.parse(saved) : [];
+    });
 
     // Generator Form State (Days committed + Equipment)
     const [genDays, setGenDays] = useState(4); // 3, 4, 5, 6
@@ -299,82 +308,191 @@ export default function TrainingPlanTab({
                         </div>
                     </div>
 
-                    {/* Day Tabs */}
-                    <div className="schedule-day-tabs">
-                        {activePlan.schedule.map((day, idx) => (
-                            <button
-                                key={idx}
-                                className={`schedule-tab-btn ${selectedDayView === idx ? 'active' : ''} ${currentDayIndex === idx ? 'current-day-highlight' : ''}`}
-                                onClick={() => setSelectedDayView(idx)}
-                            >
-                                <span>{day.muscleGroup || `Day ${idx + 1}`}</span>
-                                {currentDayIndex === idx && <small>(TODAY)</small>}
-                            </button>
-                        ))}
+                    {/* Sub-navigation: Directive vs History Logs */}
+                    <div className="plan-subnav-bar">
+                        <button
+                            className={`subnav-pill ${viewSubTab === 'schedule' ? 'active' : ''}`}
+                            onClick={() => setViewSubTab('schedule')}
+                        >
+                            ⚔️ Directive Schedule
+                        </button>
+                        <button
+                            className={`subnav-pill ${viewSubTab === 'logs' ? 'active' : ''}`}
+                            onClick={() => setViewSubTab('logs')}
+                        >
+                            📜 Dungeon Logs ({workoutLogs.length})
+                        </button>
                     </div>
 
-                    {/* Exercise Checklist */}
-                    {activeWorkout && (
-                        <div className="workout-day-card">
-                            <div className="workout-day-header">
-                                <div>
-                                    <h4>{activeWorkout.dayName}</h4>
-                                    <span className="ex-count">{activeWorkout.exercises.length} Exercises Planned</span>
-                                </div>
-
-                                <div className="header-actions">
-                                    {selectedDayView !== currentDayIndex && (
-                                        <button
-                                            className="set-active-day-btn"
-                                            onClick={() => setCurrentDayIndex && setCurrentDayIndex(selectedDayView)}
-                                            title="Set this day as today's target workout"
-                                        >
-                                            🎯 Set as Today's Focus
-                                        </button>
-                                    )}
-
-                                    {selectedDayView === currentDayIndex && (
-                                        <button
-                                            className={`finish-session-btn ${isWorkoutCompletedToday ? 'completed' : ''}`}
-                                            disabled={isWorkoutCompletedToday}
-                                            onClick={onCompleteWorkout}
-                                        >
-                                            {isWorkoutCompletedToday ? '✓ WORKOUT COMPLETED (+100 XP CLAIMED)' : 'COMPLETE WORKOUT SESSION (+100 XP) 🏆'}
-                                        </button>
-                                    )}
-                                </div>
+                    {/* VIEW SUBTAB: SCHEDULE */}
+                    {viewSubTab === 'schedule' && (
+                        <>
+                            {/* Day Tabs */}
+                            <div className="schedule-day-tabs">
+                                {activePlan.schedule.map((day, idx) => (
+                                    <button
+                                        key={idx}
+                                        className={`schedule-tab-btn ${selectedDayView === idx ? 'active' : ''} ${currentDayIndex === idx ? (isWorkoutCompletedToday ? 'completed-day-highlight' : 'current-day-highlight') : ''}`}
+                                        onClick={() => setSelectedDayView(idx)}
+                                    >
+                                        <span>{day.muscleGroup || `Day ${idx + 1}`}</span>
+                                        {currentDayIndex === idx && (
+                                            <small className={isWorkoutCompletedToday ? 'text-emerald-400' : ''}>
+                                                {isWorkoutCompletedToday ? '✓ TODAY' : '(TODAY)'}
+                                            </small>
+                                        )}
+                                    </button>
+                                ))}
                             </div>
 
-                            <div className="exercises-table">
-                                {activeWorkout.exercises.map((ex, idx) => {
-                                    const isChecked = !!checkedExercises[`${selectedDayView}-${idx}`];
-                                    return (
-                                        <div
-                                            key={idx}
-                                            className={`exercise-row ${isChecked ? 'done' : ''}`}
-                                            onClick={() => setCheckedExercises({
-                                                ...checkedExercises,
-                                                [`${selectedDayView}-${idx}`]: !isChecked
-                                            })}
-                                        >
-                                            <div className="ex-check">
-                                                {isChecked ? '✓' : '○'}
-                                            </div>
-                                            <div className="ex-info">
-                                                <span className="ex-name">{ex.name}</span>
-                                                <span className="ex-stat">Attribute: <strong className="text-cyan-400">+{ex.stat || 'STR'}</strong></span>
-                                            </div>
-                                            <div className="ex-metrics">
-                                                <span className="metric-pill">{ex.sets} Sets</span>
-                                                <span className="metric-pill">{ex.reps} Reps</span>
-                                                {ex.rest && <span className="rest-pill">{ex.rest} Rest</span>}
-                                            </div>
+                            {/* Exercise Checklist & Session Runner */}
+                            {activeWorkout && (
+                                <div className="workout-day-card">
+                                    <div className="workout-day-header">
+                                        <div>
+                                            <h4>{activeWorkout.dayName}</h4>
+                                            <span className="ex-count">{activeWorkout.exercises.length} Exercises Planned</span>
                                         </div>
-                                    );
-                                })}
+
+                                        <div className="header-actions">
+                                            {selectedDayView !== currentDayIndex && (
+                                                <button
+                                                    className="set-active-day-btn"
+                                                    onClick={() => setCurrentDayIndex && setCurrentDayIndex(selectedDayView)}
+                                                    title="Set this day as today's target workout"
+                                                >
+                                                    🎯 Set as Today's Focus
+                                                </button>
+                                            )}
+
+                                            {selectedDayView === currentDayIndex && (
+                                                <>
+                                                    <button
+                                                        className={`finish-session-btn ${isWorkoutCompletedToday ? 'completed' : ''}`}
+                                                        disabled={isWorkoutCompletedToday}
+                                                        onClick={() => {
+                                                            if (!isWorkoutCompletedToday) {
+                                                                setIsWorkoutModalOpen(true);
+                                                            }
+                                                        }}
+                                                    >
+                                                        {isWorkoutCompletedToday ? '✓ TODAY\'S SESSION COMPLETE (+100 XP)' : 'START WORKOUT SESSION ⚔️'}
+                                                    </button>
+
+                                                    {isWorkoutCompletedToday && activePlan?.schedule?.length > 1 && (
+                                                        <button
+                                                            className="advance-next-day-btn"
+                                                            onClick={() => {
+                                                                const nextIdx = (currentDayIndex + 1) % activePlan.schedule.length;
+                                                                if (setCurrentDayIndex) setCurrentDayIndex(nextIdx);
+                                                            }}
+                                                            title="Manually advance to tomorrow's scheduled workout"
+                                                        >
+                                                            ⏩ Advance to Next Routine Day
+                                                        </button>
+                                                    )}
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <div className="exercises-table">
+                                        {activeWorkout.exercises.map((ex, idx) => {
+                                            const isSessionCompleted = (selectedDayView === currentDayIndex && isWorkoutCompletedToday);
+                                            const isChecked = isSessionCompleted || !!checkedExercises[`${selectedDayView}-${idx}`];
+                                            return (
+                                                <div
+                                                    key={idx}
+                                                    className={`exercise-row ${isChecked ? 'done' : ''}`}
+                                                    onClick={() => {
+                                                        if (isSessionCompleted) return;
+                                                        setCheckedExercises({
+                                                            ...checkedExercises,
+                                                            [`${selectedDayView}-${idx}`]: !isChecked
+                                                        });
+                                                    }}
+                                                >
+                                                    <div className="ex-check">
+                                                        {isChecked ? '✓' : '○'}
+                                                    </div>
+                                                    <div className="ex-info">
+                                                        <span className="ex-name">{ex.name}</span>
+                                                        <span className="ex-stat">Attribute: <strong className="text-cyan-400">+{ex.stat || 'STR'}</strong></span>
+                                                    </div>
+                                                    <div className="ex-metrics">
+                                                        <span className="metric-pill">{ex.sets} Sets</span>
+                                                        <span className="metric-pill">{ex.reps} Reps</span>
+                                                        {ex.rest && <span className="rest-pill">{ex.rest} Rest</span>}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    )}
+
+                    {/* VIEW SUBTAB: WORKOUT HISTORY LOGS */}
+                    {viewSubTab === 'logs' && (
+                        <div className="workout-history-container">
+                            <div className="history-header">
+                                <div>
+                                    <h4>📜 Completed Dungeon Records</h4>
+                                    <span className="history-subtitle">Permanent archive of completed training missions and harvested attributes</span>
+                                </div>
                             </div>
+
+                            {workoutLogs.length === 0 ? (
+                                <div className="history-empty-state">
+                                    <div className="empty-icon">🛡️</div>
+                                    <h4>No Dungeon Logs Yet</h4>
+                                    <p>Start and finish today's scheduled workout session to log your first performance record and unlock attribute gains!</p>
+                                </div>
+                            ) : (
+                                <div className="history-logs-list">
+                                    {workoutLogs.map((log) => {
+                                        const mins = Math.floor((log.durationSeconds || 0) / 60);
+                                        const secs = (log.durationSeconds || 0) % 60;
+                                        const durationFormatted = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+
+                                        return (
+                                            <div key={log.id} className="history-log-card">
+                                                <div className="log-card-left">
+                                                    <div className="log-date-tag">{log.date}</div>
+                                                    <h4 className="log-title">{log.workoutName}</h4>
+                                                    <div className="log-meta-pills">
+                                                        <span className="log-pill">⏱️ {durationFormatted}</span>
+                                                        <span className="log-pill">📊 {log.completedSets} / {log.totalSets} Sets</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="log-card-right">
+                                                    <span className="log-xp-badge">+100 XP</span>
+                                                    <span className="log-stat-badge">✓ CLEARED</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     )}
+
+                    {/* Active Workout Execution Modal */}
+                    <ActiveWorkoutModal
+                        isOpen={isWorkoutModalOpen}
+                        workout={activeWorkout}
+                        onClose={() => setIsWorkoutModalOpen(false)}
+                        onFinishSession={(summary) => {
+                            onCompleteWorkout(summary);
+                            setIsWorkoutModalOpen(false);
+                            try {
+                                const saved = localStorage.getItem('ascend_workout_history');
+                                if (saved) setWorkoutLogs(JSON.parse(saved));
+                            } catch (e) {}
+                        }}
+                    />
                 </div>
             )}
         </section>
