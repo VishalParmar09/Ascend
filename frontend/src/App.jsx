@@ -8,8 +8,9 @@ import AwakeningModal from './components/AwakeningModal';
 import SystemGuidedTour from './components/SystemGuidedTour';
 import EvaluationTab from './components/EvaluationTab';
 import TrainingPlanTab from './components/TrainingPlanTab';
+import PromotionExamModal from './components/PromotionExamModal';
 import { getHunterRank, calculateLevelProgress } from './utils/hunterMath';
-import { generateWorkoutPlan } from './utils/trainingPlanGenerator';
+import { generateWorkoutPlan, scalePlanForRank } from './utils/trainingPlanGenerator';
 import './App.css';
 
 // Helper to resolve clean, properly formatted Workout Daily Quest title
@@ -29,6 +30,7 @@ export default function App() {
   });
   const [showCalibrationModal, setShowCalibrationModal] = useState(false);
   const [showWalkthrough, setShowWalkthrough] = useState(false);
+  const [showPromotionModal, setShowPromotionModal] = useState(false);
 
   // 1. Streak State
   const [streak, setStreak] = useState(() => {
@@ -46,6 +48,11 @@ export default function App() {
     return saved !== null ? JSON.parse(saved) : {
       strength: 10, agility: 10, vitality: 10, intelligence: 10, perception: 10,
     };
+  });
+
+  // Official Hunter Association License Rank (Promoted via Evaluation Dungeon)
+  const [officialRank, setOfficialRank] = useState(() => {
+    return localStorage.getItem('ascend_official_rank') || 'E';
   });
 
   // 2. Active Training Plan & Day Cycle
@@ -132,6 +139,7 @@ export default function App() {
   // Sync to LocalStorage
   useEffect(() => { localStorage.setItem('ascend_total_xp', totalXP); }, [totalXP]);
   useEffect(() => { localStorage.setItem('ascend_stats', JSON.stringify(stats)); }, [stats]);
+  useEffect(() => { localStorage.setItem('ascend_official_rank', officialRank); }, [officialRank]);
   useEffect(() => { localStorage.setItem('ascend_quests', JSON.stringify(quests)); }, [quests]);
   useEffect(() => { localStorage.setItem('ascend_streak', streak); }, [streak]);
   useEffect(() => { localStorage.setItem('ascend_active_plan', JSON.stringify(activePlan)); }, [activePlan]);
@@ -151,7 +159,7 @@ export default function App() {
 
   // Derived Progression
   const { level, xpForNextLevel, currentXP, remainingXP, progress } = calculateLevelProgress(totalXP);
-  const hunterRank = getHunterRank(level);
+  const hunterRank = getHunterRank(level, officialRank);
 
   // Complete Quest Handler
   function handleCompleteQuest(questId) {
@@ -226,14 +234,30 @@ export default function App() {
     setShowWalkthrough(true);
   }
 
+  // Official Hunter Rank Advancement & Progressive Overload Plan Scaling
+  function handlePromotionSuccess({ newRank, newStats, benchmarks }) {
+    setOfficialRank(newRank);
+    setStats(newStats);
+    
+    // Scale workout plan for progressive overload based on new rank tier
+    if (activePlan) {
+      const upgradedPlan = scalePlanForRank(activePlan, newRank);
+      setActivePlan(upgradedPlan);
+    }
+    
+    setShowPromotionModal(false);
+  }
+
   function handleResetProgress() {
     if (!window.confirm("Reset all data and return to the Home screen?")) return;
     localStorage.clear();
     setTotalXP(350);
     setStreak(0);
     setIsAwakened(false);
+    setOfficialRank('E');
     setShowCalibrationModal(false);
     setShowWalkthrough(false);
+    setShowPromotionModal(false);
     setCurrentWorkoutDayIndex(0);
     setIsWorkoutCompletedToday(false);
     setStats({ strength: 10, agility: 10, vitality: 10, intelligence: 10, perception: 10 });
@@ -293,7 +317,8 @@ export default function App() {
             <EvaluationTab
               level={level}
               hunterRank={hunterRank}
-              onChallengeExam={() => setShowCalibrationModal(true)}
+              onChallengeExam={() => setShowPromotionModal(true)}
+              onDevSetLevel={(simLevel) => setTotalXP(simLevel >= 10 ? 13500 : 350)}
             />
           )}
 
@@ -317,6 +342,14 @@ export default function App() {
       <SystemGuidedTour
         isOpen={showWalkthrough}
         onClose={() => setShowWalkthrough(false)}
+      />
+
+      {/* Hunter Association Rank Advancement Exam Modal */}
+      <PromotionExamModal
+        isOpen={showPromotionModal}
+        currentStats={stats}
+        onClose={() => setShowPromotionModal(false)}
+        onPromoteHunter={handlePromotionSuccess}
       />
     </main>
   );

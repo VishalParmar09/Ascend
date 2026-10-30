@@ -142,3 +142,50 @@ export function generateWorkoutPlan(daysPerWeek = 4, equipment = 'gym') {
         ]
     };
 }
+
+/**
+ * Scales an existing workout plan for progressive overload based on Hunter Rank.
+ * E-Rank = Baseline
+ * D-Rank = +1 Set on compound lifts, +2 to +5 reps on endurance lifts, D-Rank Title
+ * C-Rank = +1 Set, higher volume, dropsets
+ */
+export function scalePlanForRank(plan, rank = 'D') {
+    if (!plan || !plan.schedule) return plan;
+
+    const isDOrHigher = ['D', 'C', 'B', 'A', 'S'].includes(rank);
+
+    // Clean existing title tags like [TIER I...] or [TIER II...]
+    const baseName = plan.name.replace(/\[.*?\]/, '').trim();
+    const tierName = isDOrHigher 
+        ? `${baseName} [TIER II: ${rank}-RANK INTENSITY]`
+        : baseName;
+
+    return {
+        ...plan,
+        rankTier: rank,
+        name: tierName,
+        schedule: plan.schedule.map(day => ({
+            ...day,
+            exercises: day.exercises.map((ex, idx) => {
+                // Compound / first 3 movements get +1 set
+                const extraSet = (isDOrHigher && idx < 3) ? 1 : 0;
+                const newSets = Math.min(5, ex.sets + extraSet);
+
+                // Slightly bump reps for progressive overload
+                let newReps = ex.reps;
+                if (isDOrHigher && typeof ex.reps === 'string' && ex.reps.includes('-')) {
+                    const parts = ex.reps.split('-').map(p => parseInt(p.trim()));
+                    if (!isNaN(parts[0]) && !isNaN(parts[1])) {
+                        newReps = `${parts[0] + 2} - ${parts[1] + 2}`;
+                    }
+                }
+
+                return {
+                    ...ex,
+                    sets: newSets,
+                    reps: newReps,
+                };
+            })
+        }))
+    };
+}
