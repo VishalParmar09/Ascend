@@ -361,6 +361,16 @@ section p {
   animation: pulseDot 1.5s infinite;
 }
 
+.system-pill.offline {
+  color: #ef4444;
+}
+
+.system-pill.offline .pulsing-dot {
+  background: #ef4444;
+  box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+  animation: none;
+}
+
 @keyframes pulseDot {
 
   0%,
@@ -2716,13 +2726,27 @@ input[type=number] {
 }
 
 @keyframes slideUp {
-  from { transform: translate(-50%, 40px); opacity: 0; }
-  to { transform: translate(-50%, 0); opacity: 1; }
+  from {
+    transform: translate(-50%, 40px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
 }
 
 @keyframes scaleIn {
-  from { transform: scale(0.92); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from {
+    transform: scale(0.92);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 /* ================= DAY 8: PROMOTION EXAM MODAL & RANK ADVANCEMENT ================= */
@@ -2943,9 +2967,17 @@ input[type=number] {
 }
 
 @keyframes scanMove {
-  0% { transform: translateY(0); }
-  50% { transform: translateY(88px); }
-  100% { transform: translateY(0); }
+  0% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(88px);
+  }
+
+  100% {
+    transform: translateY(0);
+  }
 }
 
 .cam-status {

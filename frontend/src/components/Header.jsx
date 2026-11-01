@@ -1,6 +1,6 @@
 // src/components/Header.jsx
 
-export default function Header({ streak, activeTab, setActiveTab }) {
+export default function Header({ streak, activeTab, setActiveTab, isBackendConnected }) {
   const tabs = [
     { id: 'dashboard', label: 'DASHBOARD' },
     { id: 'training', label: 'TRAINING PLAN' },
@@ -13,9 +13,11 @@ export default function Header({ streak, activeTab, setActiveTab }) {
       {/* Brand & System Status */}
       <div className="navbar-top">
         <div className="brand-group">
-          <div className="system-pill">
+          <div className={`system-pill ${isBackendConnected ? 'connected' : 'offline'}`}>
             <span className="pulsing-dot"></span>
-            ASCEND PROTOCOL // SYSTEM ONLINE
+            {isBackendConnected
+              ? 'GATEWAY LINK // ONLINE (NEON POSTGRES)'
+              : 'GATEWAY LINK // LOCAL FALLBACK'}
           </div>
           <h1 className="brand-title">THE SYSTEM</h1>
         </div>

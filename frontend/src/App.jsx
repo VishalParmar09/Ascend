@@ -11,6 +11,7 @@ import TrainingPlanTab from './components/TrainingPlanTab';
 import PromotionExamModal from './components/PromotionExamModal';
 import { getHunterRank, calculateLevelProgress } from './utils/hunterMath';
 import { generateWorkoutPlan, scalePlanForRank } from './utils/trainingPlanGenerator';
+import { ascendApi } from './services/ascendApi';
 import './App.css';
 
 // Helper to resolve clean, properly formatted Workout Daily Quest title
@@ -24,6 +25,7 @@ function getWorkoutQuestTitle(plan, dayIndex) {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [isBackendConnected, setIsBackendConnected] = useState(false);
 
   const [isAwakened, setIsAwakened] = useState(() => {
     return localStorage.getItem('ascend_is_awakened') === 'true';
@@ -67,7 +69,6 @@ export default function App() {
     const saved = localStorage.getItem('ascend_workout_day_index');
     let index = saved !== null ? Number(saved) : 0;
 
-    // When day rolls over to tomorrow and yesterday's workout was finished, advance split!
     if (lastActiveDate && lastActiveDate !== today) {
       const lastWorkoutDate = localStorage.getItem('ascend_last_workout_date');
       const savedPlan = localStorage.getItem('ascend_active_plan');
@@ -80,63 +81,83 @@ export default function App() {
     return index;
   });
 
-  // Track if today's workout session has been finished
   const [isWorkoutCompletedToday, setIsWorkoutCompletedToday] = useState(() => {
     const today = new Intl.DateTimeFormat('en-CA').format(new Date());
     const lastWorkoutDate = localStorage.getItem('ascend_last_workout_date');
     return lastWorkoutDate === today;
   });
 
-  // 3. Daily Quests (Synchronized with Active Training Plan!)
+  // 3. Daily Quests
   const [quests, setQuests] = useState(() => {
-    const today = new Intl.DateTimeFormat('en-CA').format(new Date());
-    const lastActiveDate = localStorage.getItem('ascend_last_active_date');
     const savedQuests = localStorage.getItem('ascend_quests');
-
     const workoutTitle = getWorkoutQuestTitle(activePlan, currentWorkoutDayIndex);
-
     const defaultQuests = [
       { id: 1, title: workoutTitle, category: 'FITNESS', xp: 100, completed: false },
       { id: 2, title: 'Deep Work / Study for 1 hour', category: 'KNOWLEDGE', xp: 75, completed: false },
       { id: 3, title: 'Read 15 pages of a book', category: 'DISCIPLINE', xp: 25, completed: false },
     ];
-
-    if (lastActiveDate !== today) {
-      localStorage.setItem('ascend_last_active_date', today);
-      if (savedQuests) {
-        try {
-          const parsed = JSON.parse(savedQuests);
-          return parsed.map(q => ({
-            ...q,
-            completed: false,
-            title: q.id === 1 ? workoutTitle : q.title
-          }));
-        } catch (e) {
-          return defaultQuests;
-        }
-      }
-      return defaultQuests;
-    }
-
-    if (savedQuests !== null) {
+    if (savedQuests) {
       try {
-        const parsed = JSON.parse(savedQuests);
-        // Automatically repair legacy "Workout: undefined" or duplicate "Workout: Workout:"
-        return parsed.map(q => {
-          if (q.id === 1 && (!q.title || q.title.includes('undefined') || q.title.startsWith('Workout: Workout:'))) {
-            return { ...q, title: workoutTitle };
-          }
-          return q;
-        });
-      } catch (e) {
+        return JSON.parse(savedQuests);
+      } catch {
         return defaultQuests;
       }
     }
-
     return defaultQuests;
   });
 
-  // Sync to LocalStorage
+  // --- Initial Client-Server Synchronization with Spring Boot / Neon PostgreSQL ---
+  useEffect(() => {
+    let isMounted = true;
+
+    async function syncBackend() {
+      try {
+        const isOnline = await ascendApi.checkHealth();
+        if (!isMounted) return;
+        setIsBackendConnected(isOnline);
+
+        if (isOnline) {
+          // 1. Fetch Authoritative Profile from Neon PostgreSQL
+          const profile = await ascendApi.getProfile('ShadowMonarch');
+          if (profile && isMounted) {
+            setTotalXP(profile.totalXp);
+            setStats({
+              strength: profile.strength,
+              agility: profile.agility,
+              vitality: profile.vitality,
+              intelligence: profile.intelligence,
+              perception: profile.perception,
+            });
+            setOfficialRank(profile.rank);
+            setStreak(profile.streak);
+            setIsAwakened(true); // ShadowMonarch is an awakened hunter in DB
+          }
+
+          // 2. Fetch Authoritative Daily Quests from Neon PostgreSQL
+          const serverQuests = await ascendApi.getTodayQuests('ShadowMonarch');
+          if (serverQuests && serverQuests.length > 0 && isMounted) {
+            setQuests(serverQuests.map(q => ({
+              id: q.id,
+              title: q.title,
+              category: q.category,
+              xp: q.xpReward,
+              completed: q.completed,
+              statTarget: q.statTarget,
+            })));
+          }
+        }
+      } catch (err) {
+        console.warn('Backend sync failed, maintaining local persistence:', err);
+        if (isMounted) setIsBackendConnected(false);
+      }
+    }
+
+    syncBackend();
+
+    return () => { isMounted = false; };
+  }, []);
+
+  // Sync to LocalStorage (as resilience cache)
   useEffect(() => { localStorage.setItem('ascend_total_xp', totalXP); }, [totalXP]);
   useEffect(() => { localStorage.setItem('ascend_stats', JSON.stringify(stats)); }, [stats]);
   useEffect(() => { localStorage.setItem('ascend_official_rank', officialRank); }, [officialRank]);
@@ -145,30 +166,33 @@ export default function App() {
   useEffect(() => { localStorage.setItem('ascend_active_plan', JSON.stringify(activePlan)); }, [activePlan]);
   useEffect(() => { localStorage.setItem('ascend_workout_day_index', currentWorkoutDayIndex); }, [currentWorkoutDayIndex]);
 
-  // Synchronize Daily Workout Quest Title whenever Active Plan or Day Index changes
-  useEffect(() => {
-    const expectedTitle = getWorkoutQuestTitle(activePlan, currentWorkoutDayIndex);
-    setQuests(prevQuests => {
-      const workoutQuest = prevQuests.find(q => q.id === 1);
-      if (!workoutQuest || workoutQuest.title !== expectedTitle || workoutQuest.title.includes('undefined')) {
-        return prevQuests.map(q => q.id === 1 ? { ...q, title: expectedTitle } : q);
-      }
-      return prevQuests;
-    });
-  }, [activePlan, currentWorkoutDayIndex]);
-
   // Derived Progression
   const { level, xpForNextLevel, currentXP, remainingXP, progress } = calculateLevelProgress(totalXP);
   const hunterRank = getHunterRank(level, officialRank);
 
-  // Complete Quest Handler
-  function handleCompleteQuest(questId) {
+  // Complete Quest Handler (with Real Backend Dispatch)
+  async function handleCompleteQuest(questId) {
     const target = quests.find(q => q.id === questId);
     if (!target || target.completed) return;
 
+    // Optimistic UI update
     const updatedQuests = quests.map(q => q.id === questId ? { ...q, completed: true } : q);
     setQuests(updatedQuests);
-    setTotalXP(prev => prev + target.xp);
+    const reward = target.xp || target.xpReward || 50;
+    setTotalXP(prev => prev + reward);
+
+    // Sync to Spring Boot Backend
+    if (isBackendConnected) {
+      try {
+        const result = await ascendApi.completeQuest(questId, 'ShadowMonarch');
+        if (result?.hunterProfile) {
+          setTotalXP(result.hunterProfile.totalXp);
+          setStreak(result.hunterProfile.streak);
+        }
+      } catch (err) {
+        console.warn('Backend quest completion failed; maintaining local state:', err);
+      }
+    }
 
     // If workout quest was completed, mark workout as completed today
     if (questId === 1) {
@@ -188,18 +212,23 @@ export default function App() {
     }
   }
 
-  // Complete Workout from Training Plan Tab (Two-Way Sync + Level Progress + History Log!)
-  function handleCompleteWorkoutSession(summary) {
+  // Complete Workout Session (with Real Backend Dispatch to Neon PostgreSQL)
+  async function handleCompleteWorkoutSession(summary) {
     if (isWorkoutCompletedToday) return;
 
     const today = new Intl.DateTimeFormat('en-CA').format(new Date());
     setIsWorkoutCompletedToday(true);
     localStorage.setItem('ascend_last_workout_date', today);
 
-    // Mark the dashboard workout quest (id: 1) as completed (+100 Hunter XP)
+    // Mark the dashboard workout quest (id: 1) as completed
     handleCompleteQuest(1);
 
-    // Record to workout logs history
+    const workoutName = summary?.workoutName || activePlan?.schedule?.[currentWorkoutDayIndex]?.dayName || 'Workout Session';
+    const durationSeconds = summary?.durationSeconds || 0;
+    const completedSets = summary?.completedSets || 0;
+    const totalSets = summary?.totalSets || 0;
+
+    // Record to workout logs history locally
     try {
       const saved = localStorage.getItem('ascend_workout_history');
       const history = saved ? JSON.parse(saved) : [];
@@ -207,15 +236,34 @@ export default function App() {
         id: 'log_' + Date.now(),
         date: today,
         timestamp: new Date().toISOString(),
-        workoutName: summary?.workoutName || activePlan?.schedule?.[currentWorkoutDayIndex]?.dayName || 'Workout Session',
-        durationSeconds: summary?.durationSeconds || 0,
-        completedSets: summary?.completedSets || 0,
-        totalSets: summary?.totalSets || 0,
+        workoutName,
+        durationSeconds,
+        completedSets,
+        totalSets,
         xpGained: 100
       });
       localStorage.setItem('ascend_workout_history', JSON.stringify(history));
     } catch (e) {
       console.error("Failed to save workout history log", e);
+    }
+
+    // Dispatch to Spring Boot backend -> Neon PostgreSQL!
+    if (isBackendConnected) {
+      try {
+        const logPayload = {
+          workoutName,
+          durationSeconds,
+          completedSets,
+          totalSets,
+          xpEarned: 100
+        };
+        const result = await ascendApi.logWorkout(logPayload, 'ShadowMonarch');
+        if (result?.hunterProfile) {
+          setTotalXP(result.hunterProfile.totalXp);
+        }
+      } catch (err) {
+        console.warn('Failed to dispatch workout log to backend:', err);
+      }
     }
 
     // Advance to next day in cycle for tomorrow
@@ -225,26 +273,57 @@ export default function App() {
     }
   }
 
-  function handleAwakeningComplete(calibrationData) {
+  async function handleAwakeningComplete(calibrationData) {
     setStats(calibrationData.stats);
     setIsAwakened(true);
     localStorage.setItem('ascend_is_awakened', 'true');
     localStorage.setItem('ascend_user_profile', JSON.stringify(calibrationData.profile));
     setShowCalibrationModal(false);
     setShowWalkthrough(true);
+
+    if (isBackendConnected) {
+      try {
+        await ascendApi.recalibrateHunter({
+          rank: 'E',
+          strength: calibrationData.stats.strength,
+          agility: calibrationData.stats.agility,
+          vitality: calibrationData.stats.vitality,
+          intelligence: calibrationData.stats.intelligence,
+          perception: calibrationData.stats.perception
+        }, 'ShadowMonarch');
+      } catch (err) {
+        console.warn('Failed to dispatch awakening stats to backend:', err);
+      }
+    }
   }
 
   // Official Hunter Rank Advancement & Progressive Overload Plan Scaling
-  function handlePromotionSuccess({ newRank, newStats, benchmarks }) {
+  async function handlePromotionSuccess({ newRank, newStats, benchmarks }) {
     setOfficialRank(newRank);
     setStats(newStats);
-    
+
     // Scale workout plan for progressive overload based on new rank tier
     if (activePlan) {
       const upgradedPlan = scalePlanForRank(activePlan, newRank);
       setActivePlan(upgradedPlan);
     }
-    
+
+    // Dispatch Recalibration to Spring Boot backend -> Neon PostgreSQL!
+    if (isBackendConnected) {
+      try {
+        await ascendApi.recalibrateHunter({
+          rank: newRank,
+          strength: newStats.strength,
+          agility: newStats.agility,
+          vitality: newStats.vitality,
+          intelligence: newStats.intelligence,
+          perception: newStats.perception
+        }, 'ShadowMonarch');
+      } catch (err) {
+        console.warn('Failed to dispatch rank recalibration to backend:', err);
+      }
+    }
+
     setShowPromotionModal(false);
   }
 
@@ -279,6 +358,7 @@ export default function App() {
             streak={streak}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
+            isBackendConnected={isBackendConnected}
           />
 
           {activeTab === 'dashboard' && (
@@ -306,51 +386,51 @@ export default function App() {
             <TrainingPlanTab
               activePlan={activePlan}
               setActivePlan={setActivePlan}
-              currentDayIndex={currentWorkoutDayIndex}
-              setCurrentDayIndex={setCurrentWorkoutDayIndex}
+              currentWorkoutDayIndex={currentWorkoutDayIndex}
               isWorkoutCompletedToday={isWorkoutCompletedToday}
-              onCompleteWorkout={handleCompleteWorkoutSession}
+              onCompleteWorkoutSession={handleCompleteWorkoutSession}
             />
           )}
 
           {activeTab === 'evaluation' && (
             <EvaluationTab
-              level={level}
+              stats={stats}
               hunterRank={hunterRank}
-              onChallengeExam={() => setShowPromotionModal(true)}
-              onDevSetLevel={(simLevel) => setTotalXP(simLevel >= 10 ? 13500 : 350)}
+              level={level}
+              onTriggerPromotionExam={() => setShowPromotionModal(true)}
             />
           )}
 
-          {activeTab !== 'dashboard' && activeTab !== 'training' && activeTab !== 'evaluation' && (
-            <section className="coming-soon-panel">
-              <h2>[ SYSTEM MODULE: {activeTab.toUpperCase().replace('-', ' ')} ]</h2>
-              <p>Module initialization in progress...</p>
+          {activeTab === 'leaderboard' && (
+            <section className="leaderboard-placeholder">
+              <h2>GLOBAL HUNTER LEADERBOARD</h2>
+              <p>Hunter Registry synchronized with Association Database.</p>
             </section>
+          )}
+
+          {showPromotionModal && (
+            <PromotionExamModal
+              currentRank={hunterRank.rank}
+              currentStats={stats}
+              onClose={() => setShowPromotionModal(false)}
+              onSuccess={handlePromotionSuccess}
+            />
+          )}
+
+          {showWalkthrough && (
+            <SystemGuidedTour
+              onFinish={() => setShowWalkthrough(false)}
+            />
           )}
         </>
       )}
 
-      {/* Awakening Calibration Modal */}
-      <AwakeningModal
-        isOpen={showCalibrationModal}
-        onClose={() => setShowCalibrationModal(false)}
-        onComplete={handleAwakeningComplete}
-      />
-
-      {/* Interactive Spotlight Tour on Dashboard */}
-      <SystemGuidedTour
-        isOpen={showWalkthrough}
-        onClose={() => setShowWalkthrough(false)}
-      />
-
-      {/* Hunter Association Rank Advancement Exam Modal */}
-      <PromotionExamModal
-        isOpen={showPromotionModal}
-        currentStats={stats}
-        onClose={() => setShowPromotionModal(false)}
-        onPromoteHunter={handlePromotionSuccess}
-      />
+      {showCalibrationModal && (
+        <AwakeningModal
+          onClose={() => setShowCalibrationModal(false)}
+          onComplete={handleAwakeningComplete}
+        />
+      )}
     </main>
   );
 }
