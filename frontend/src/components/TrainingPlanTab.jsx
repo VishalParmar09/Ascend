@@ -7,10 +7,16 @@ export default function TrainingPlanTab({
     activePlan,
     setActivePlan,
     currentDayIndex,
+    currentWorkoutDayIndex,
     setCurrentDayIndex,
+    setCurrentWorkoutDayIndex,
     isWorkoutCompletedToday,
-    onCompleteWorkout
+    onCompleteWorkout,
+    onCompleteWorkoutSession
 }) {
+    const activeDayIndex = currentDayIndex !== undefined ? currentDayIndex : (currentWorkoutDayIndex || 0);
+    const updateDayIndex = setCurrentDayIndex || setCurrentWorkoutDayIndex;
+    const handleCompleteWorkout = onCompleteWorkout || onCompleteWorkoutSession;
     // If user has no plan, default to 'select' wizard screen!
     const [viewMode, setViewMode] = useState(activePlan ? 'view' : 'select');
     const [viewSubTab, setViewSubTab] = useState('schedule'); // 'schedule' or 'logs'
@@ -47,20 +53,20 @@ export default function TrainingPlanTab({
         }
     ]);
 
-    const [selectedDayView, setSelectedDayView] = useState(currentDayIndex || 0);
+    const [selectedDayView, setSelectedDayView] = useState(activeDayIndex);
     const [checkedExercises, setCheckedExercises] = useState({});
 
     // Synchronize selected day view with currentDayIndex when active day changes
     useEffect(() => {
-        if (currentDayIndex !== undefined && currentDayIndex !== null) {
-            setSelectedDayView(currentDayIndex);
+        if (activeDayIndex !== undefined && activeDayIndex !== null) {
+            setSelectedDayView(activeDayIndex);
         }
-    }, [currentDayIndex]);
+    }, [activeDayIndex]);
 
     function handleGenerateSubmit() {
         const plan = generateWorkoutPlan(genDays, genEquip);
         setActivePlan(plan);
-        if (setCurrentDayIndex) setCurrentDayIndex(0);
+        if (updateDayIndex) updateDayIndex(0);
         setViewMode('view');
         setSelectedDayView(0);
     }
@@ -74,7 +80,7 @@ export default function TrainingPlanTab({
             schedule: customDays
         };
         setActivePlan(plan);
-        if (setCurrentDayIndex) setCurrentDayIndex(0);
+        if (updateDayIndex) updateDayIndex(0);
         setViewMode('view');
         setSelectedDayView(0);
     }
@@ -332,11 +338,11 @@ export default function TrainingPlanTab({
                                 {activePlan.schedule.map((day, idx) => (
                                     <button
                                         key={idx}
-                                        className={`schedule-tab-btn ${selectedDayView === idx ? 'active' : ''} ${currentDayIndex === idx ? (isWorkoutCompletedToday ? 'completed-day-highlight' : 'current-day-highlight') : ''}`}
+                                        className={`schedule-tab-btn ${selectedDayView === idx ? 'active' : ''} ${activeDayIndex === idx ? (isWorkoutCompletedToday ? 'completed-day-highlight' : 'current-day-highlight') : ''}`}
                                         onClick={() => setSelectedDayView(idx)}
                                     >
                                         <span>{day.muscleGroup || `Day ${idx + 1}`}</span>
-                                        {currentDayIndex === idx && (
+                                        {activeDayIndex === idx && (
                                             <small className={isWorkoutCompletedToday ? 'text-emerald-400' : ''}>
                                                 {isWorkoutCompletedToday ? '✓ TODAY' : '(TODAY)'}
                                             </small>
@@ -355,17 +361,17 @@ export default function TrainingPlanTab({
                                         </div>
 
                                         <div className="header-actions">
-                                            {selectedDayView !== currentDayIndex && (
+                                            {selectedDayView !== activeDayIndex && (
                                                 <button
                                                     className="set-active-day-btn"
-                                                    onClick={() => setCurrentDayIndex && setCurrentDayIndex(selectedDayView)}
+                                                    onClick={() => updateDayIndex && updateDayIndex(selectedDayView)}
                                                     title="Set this day as today's target workout"
                                                 >
                                                     🎯 Set as Today's Focus
                                                 </button>
                                             )}
 
-                                            {selectedDayView === currentDayIndex && (
+                                            {selectedDayView === activeDayIndex && (
                                                 <>
                                                     <button
                                                         className={`finish-session-btn ${isWorkoutCompletedToday ? 'completed' : ''}`}
@@ -383,8 +389,8 @@ export default function TrainingPlanTab({
                                                         <button
                                                             className="advance-next-day-btn"
                                                             onClick={() => {
-                                                                const nextIdx = (currentDayIndex + 1) % activePlan.schedule.length;
-                                                                if (setCurrentDayIndex) setCurrentDayIndex(nextIdx);
+                                                                const nextIdx = (activeDayIndex + 1) % activePlan.schedule.length;
+                                                                if (updateDayIndex) updateDayIndex(nextIdx);
                                                             }}
                                                             title="Manually advance to tomorrow's scheduled workout"
                                                         >
@@ -398,7 +404,7 @@ export default function TrainingPlanTab({
 
                                     <div className="exercises-table">
                                         {activeWorkout.exercises.map((ex, idx) => {
-                                            const isSessionCompleted = (selectedDayView === currentDayIndex && isWorkoutCompletedToday);
+                                            const isSessionCompleted = (selectedDayView === activeDayIndex && isWorkoutCompletedToday);
                                             const isChecked = isSessionCompleted || !!checkedExercises[`${selectedDayView}-${idx}`];
                                             return (
                                                 <div
@@ -485,7 +491,7 @@ export default function TrainingPlanTab({
                         workout={activeWorkout}
                         onClose={() => setIsWorkoutModalOpen(false)}
                         onFinishSession={(summary) => {
-                            onCompleteWorkout(summary);
+                            if (handleCompleteWorkout) handleCompleteWorkout(summary);
                             setIsWorkoutModalOpen(false);
                             try {
                                 const saved = localStorage.getItem('ascend_workout_history');

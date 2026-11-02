@@ -2,8 +2,8 @@
 import { useState } from 'react';
 import { calculateAwakenedStats } from '../utils/calibrationMath';
 
-export default function AwakeningModal({ isOpen, onClose, onComplete }) {
-  if (!isOpen) return null;
+export default function AwakeningModal({ isOpen = true, onClose, onComplete }) {
+  if (isOpen === false) return null;
 
   const [step, setStep] = useState(1);
 

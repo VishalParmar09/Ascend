@@ -73,11 +73,18 @@ public class HunterService {
             hunter.setAvailablePoints(hunter.getAvailablePoints() + (levelDiff * 3));
         }
 
-        // Streak check
+        // Streak check (Authoritative Backend Engine)
         LocalDate today = LocalDate.now();
-        if (hunter.getLastActiveDate() == null || !hunter.getLastActiveDate().equals(today)) {
-            if (hunter.getLastActiveDate() != null && hunter.getLastActiveDate().plusDays(1).equals(today)) {
+        if (hunter.getLastActiveDate() == null) {
+            hunter.setStreak(1);
+            hunter.setLastActiveDate(today);
+        } else if (!hunter.getLastActiveDate().equals(today)) {
+            if (hunter.getLastActiveDate().plusDays(1).equals(today)) {
+                // Active consecutive day -> Streak +1
                 hunter.setStreak(hunter.getStreak() + 1);
+            } else {
+                // Missed one or more days -> Streak resets to 1
+                hunter.setStreak(1);
             }
             hunter.setLastActiveDate(today);
         }

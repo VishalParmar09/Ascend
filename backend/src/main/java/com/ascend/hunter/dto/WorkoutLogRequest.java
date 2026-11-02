@@ -15,4 +15,5 @@ public class WorkoutLogRequest {
     private int completedSets;
     private int totalSets;
     private int xpEarned;
+    private String idempotencyKey;
 }

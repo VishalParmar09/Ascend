@@ -38,6 +38,9 @@ public class WorkoutLog {
     @Builder.Default
     private int xpEarned = 0;
 
+    @Column(name = "idempotency_key", length = 100, unique = true)
+    private String idempotencyKey;
+
     // Relational Foreign Key to Hunter
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "hunter_id", nullable = false)

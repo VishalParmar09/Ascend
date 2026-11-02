@@ -1,6 +1,14 @@
 // src/components/EvaluationTab.jsx
 
-export default function EvaluationTab({ level, hunterRank, onChallengeExam, onDevSetLevel }) {
+export default function EvaluationTab({
+  level,
+  hunterRank,
+  onChallengeExam,
+  onTriggerPromotionExam,
+  onDevSetLevel
+}) {
+  const triggerExam = onChallengeExam || onTriggerPromotionExam;
+
   // 1. Progression milestones strictly mapped to the Hunter's current official Rank
   const rankProgression = {
     E: { targetRank: 'D-Rank', requiredLevel: 10 },
@@ -63,7 +71,7 @@ export default function EvaluationTab({ level, hunterRank, onChallengeExam, onDe
         <button
           className={`challenge-btn ${isEligible ? 'unlocked' : 'locked'}`}
           disabled={!isEligible}
-          onClick={onChallengeExam}
+          onClick={triggerExam}
         >
           {isEligible 
             ? `INITIATE ${targetRank.toUpperCase()} PROMOTION EXAM ⚔️` 

@@ -2,8 +2,14 @@
 import { useState, useEffect } from 'react';
 import { playSetCompleteSound, playVictoryFanfareSound } from '../utils/soundEffects';
 
-export default function PromotionExamModal({ isOpen, currentStats, onClose, onPromoteHunter }) {
-  if (!isOpen) return null;
+export default function PromotionExamModal({
+  isOpen = true,
+  currentStats,
+  onClose,
+  onPromoteHunter,
+  onSuccess
+}) {
+  if (isOpen === false) return null;
 
   // 1. Stage tracker: 1 = Pushups, 2 = Plank, 3 = Cardio, 4 = Ceremony
   const [stage, setStage] = useState(1);
@@ -53,8 +59,8 @@ export default function PromotionExamModal({ isOpen, currentStats, onClose, onPr
     upgraded.agility = Math.max(upgraded.agility, agiMap[cardioLevel] || 15);
 
     // Perception & Intelligence passive growth from mental discipline
-    upgraded.perception = Math.max(upgraded.perception, upgraded.perception + 2);
-    upgraded.intelligence = Math.max(upgraded.intelligence, upgraded.intelligence + 2);
+    upgraded.perception = Math.max(upgraded.perception, (upgraded.perception || 10) + 2);
+    upgraded.intelligence = Math.max(upgraded.intelligence, (upgraded.intelligence || 10) + 2);
 
     return upgraded;
   }
@@ -75,11 +81,14 @@ export default function PromotionExamModal({ isOpen, currentStats, onClose, onPr
 
   function handleClaimBreakthrough() {
     if (finalStats) {
-      onPromoteHunter({
-        newRank: 'D',
-        newStats: finalStats,
-        benchmarks: { pushupReps, plankSeconds, cardioLevel }
-      });
+      const promoteCallback = onPromoteHunter || onSuccess;
+      if (promoteCallback) {
+        promoteCallback({
+          newRank: 'D',
+          newStats: finalStats,
+          benchmarks: { pushupReps, plankSeconds, cardioLevel }
+        });
+      }
     }
   }
 
