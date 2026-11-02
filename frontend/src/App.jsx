@@ -118,6 +118,15 @@ export default function App() {
         setIsBackendConnected(isOnline);
 
         if (isOnline) {
+          // 0. Ensure authenticated session with JWT Token
+          if (!ascendApi.getToken()) {
+            try {
+              await ascendApi.login({ identifier: 'ShadowMonarch', password: 'hunter123' });
+            } catch (authErr) {
+              console.warn('Initial session login failed:', authErr);
+            }
+          }
+
           // 1. Fetch Authoritative Profile from Neon PostgreSQL
           const profile = await ascendApi.getProfile('ShadowMonarch');
           if (profile && isMounted) {

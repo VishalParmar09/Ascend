@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import com.ascend.hunter.entity.Hunter;
 import com.ascend.hunter.entity.HunterRank;
@@ -25,11 +26,22 @@ public class DataInitializer implements CommandLineRunner {
     private final HunterRepository hunterRepository;
     private final QuestRepository questRepository;
     private final WorkoutLogRepository workoutLogRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     public void run(String... args) {
+        // Ensure existing seeded hunters have valid BCrypt passwords and emails
+        hunterRepository.findByUsername("ShadowMonarch").ifPresent(shadow -> {
+            if (shadow.getPassword() == null || !shadow.getPassword().startsWith("$2")) {
+                shadow.setPassword(passwordEncoder.encode("hunter123"));
+                shadow.setEmail("shadow@ascend.system");
+                hunterRepository.save(shadow);
+                log.info("Initialized credentials for existing Hunter: ShadowMonarch (password: hunter123)");
+            }
+        });
+
         if (hunterRepository.count() > 0) {
-            log.info("System Database already contains hunters. Skipping seeding.");
+            log.info("System Database already contains hunters. Skipping full re-seed.");
             return;
         }
 
@@ -38,6 +50,8 @@ public class DataInitializer implements CommandLineRunner {
         // 1. Seed Veteran Hunter (D-Rank)
         Hunter shadowMonarch = Hunter.builder()
                 .username("ShadowMonarch")
+                .email("shadow@ascend.system")
+                .password(passwordEncoder.encode("hunter123"))
                 .rank(HunterRank.D)
                 .level(12)
                 .totalXp(3850)
@@ -49,12 +63,15 @@ public class DataInitializer implements CommandLineRunner {
                 .intelligence(16)
                 .perception(18)
                 .availablePoints(6)
+                .role("ROLE_HUNTER")
                 .build();
         hunterRepository.save(shadowMonarch);
 
         // 2. Seed Beginner Hunter (E-Rank)
         Hunter beginner = Hunter.builder()
                 .username("PlayerOne")
+                .email("player1@ascend.system")
+                .password(passwordEncoder.encode("hunter123"))
                 .rank(HunterRank.E)
                 .level(1)
                 .totalXp(0)
@@ -66,6 +83,7 @@ public class DataInitializer implements CommandLineRunner {
                 .intelligence(10)
                 .perception(10)
                 .availablePoints(5)
+                .role("ROLE_HUNTER")
                 .build();
         hunterRepository.save(beginner);
 
