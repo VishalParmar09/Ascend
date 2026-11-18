@@ -5,6 +5,7 @@ import StatusPanel from './components/StatusPanel';
 import QuestsPanel from './components/QuestsPanel';
 import LandingPage from './components/LandingPage';
 import AwakeningModal from './components/AwakeningModal';
+import AuthModal from './components/AuthModal';
 import SystemGuidedTour from './components/SystemGuidedTour';
 import EvaluationTab from './components/EvaluationTab';
 import TrainingPlanTab from './components/TrainingPlanTab';
@@ -26,6 +27,12 @@ function getWorkoutQuestTitle(plan, dayIndex) {
 export default function App() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isBackendConnected, setIsBackendConnected] = useState(false);
+
+  // Authentication & Hunter Identity State
+  const [currentHunter, setCurrentHunter] = useState(() => {
+    return localStorage.getItem('ascend_current_hunter') || 'ShadowMonarch';
+  });
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
   const [isAwakened, setIsAwakened] = useState(() => {
     return localStorage.getItem('ascend_is_awakened') === 'true';
@@ -106,6 +113,46 @@ export default function App() {
     return defaultQuests;
   });
 
+  // Helper to re-hydrate all state from the server for the current hunter
+  async function loadHunterData(hunterName) {
+    if (!hunterName) return;
+    try {
+      // 1. Fetch Authoritative Profile from Neon PostgreSQL
+      const profile = await ascendApi.getProfile(hunterName);
+      if (profile) {
+        setTotalXP(profile.totalXp);
+        setStats({
+          strength: profile.strength,
+          agility: profile.agility,
+          vitality: profile.vitality,
+          intelligence: profile.intelligence,
+          perception: profile.perception,
+        });
+        setOfficialRank(profile.rank);
+        setStreak(profile.streak);
+        setIsAwakened(true);
+      }
+
+      // 2. Fetch Authoritative Daily Quests from Neon PostgreSQL
+      const serverQuests = await ascendApi.getTodayQuests(hunterName);
+      if (serverQuests && serverQuests.length > 0) {
+        setQuests(serverQuests.map(q => ({
+          id: q.id,
+          title: q.title,
+          category: q.category,
+          xp: q.xpReward,
+          completed: q.completed,
+          statTarget: q.statTarget,
+        })));
+
+        const fitnessQuest = serverQuests.find(q => q.category === 'FITNESS');
+        setIsWorkoutCompletedToday(!!fitnessQuest?.completed);
+      }
+    } catch (err) {
+      console.warn('Failed to load hunter data for', hunterName, err);
+    }
+  }
+
   // --- Initial Client-Server Synchronization with Spring Boot / Neon PostgreSQL ---
   // RULE OF AUTHORITY: Neon PostgreSQL is the Single Source of Truth; localStorage is offline cache.
   useEffect(() => {
@@ -118,47 +165,18 @@ export default function App() {
         setIsBackendConnected(isOnline);
 
         if (isOnline) {
-          // 0. Ensure authenticated session with JWT Token
-          if (!ascendApi.getToken()) {
+          // If a token exists, load the active hunter data
+          if (ascendApi.getToken()) {
+            await loadHunterData(currentHunter);
+          } else {
+            // Background demo login for smooth transition
             try {
-              await ascendApi.login({ identifier: 'ShadowMonarch', password: 'hunter123' });
+              const res = await ascendApi.login({ identifier: currentHunter, password: 'hunter123' });
+              if (res?.token && isMounted) {
+                await loadHunterData(currentHunter);
+              }
             } catch (authErr) {
               console.warn('Initial session login failed:', authErr);
-            }
-          }
-
-          // 1. Fetch Authoritative Profile from Neon PostgreSQL
-          const profile = await ascendApi.getProfile('ShadowMonarch');
-          if (profile && isMounted) {
-            setTotalXP(profile.totalXp);
-            setStats({
-              strength: profile.strength,
-              agility: profile.agility,
-              vitality: profile.vitality,
-              intelligence: profile.intelligence,
-              perception: profile.perception,
-            });
-            setOfficialRank(profile.rank);
-            setStreak(profile.streak);
-            setIsAwakened(true); // ShadowMonarch is an active awakened hunter in DB
-          }
-
-          // 2. Fetch Authoritative Daily Quests from Neon PostgreSQL
-          const serverQuests = await ascendApi.getTodayQuests('ShadowMonarch');
-          if (serverQuests && serverQuests.length > 0 && isMounted) {
-            setQuests(serverQuests.map(q => ({
-              id: q.id,
-              title: q.title,
-              category: q.category,
-              xp: q.xpReward,
-              completed: q.completed,
-              statTarget: q.statTarget,
-            })));
-
-            // Synchronize workout completion status based on today's FITNESS quest
-            const fitnessQuest = serverQuests.find(q => q.category === 'FITNESS');
-            if (fitnessQuest?.completed) {
-              setIsWorkoutCompletedToday(true);
             }
           }
         }
@@ -171,7 +189,7 @@ export default function App() {
     syncBackend();
 
     return () => { isMounted = false; };
-  }, []);
+  }, [currentHunter]);
 
   // Sync to LocalStorage (as offline resilience fallback cache)
   useEffect(() => { localStorage.setItem('ascend_total_xp', totalXP); }, [totalXP]);
@@ -181,6 +199,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem('ascend_streak', streak); }, [streak]);
   useEffect(() => { localStorage.setItem('ascend_active_plan', JSON.stringify(activePlan)); }, [activePlan]);
   useEffect(() => { localStorage.setItem('ascend_workout_day_index', currentWorkoutDayIndex); }, [currentWorkoutDayIndex]);
+  useEffect(() => { localStorage.setItem('ascend_current_hunter', currentHunter); }, [currentHunter]);
 
   // Synchronize Daily Workout Quest Title dynamically by CATEGORY (not fixed ID)
   useEffect(() => {
@@ -197,6 +216,42 @@ export default function App() {
   // Derived Progression
   const { level, xpForNextLevel, currentXP, remainingXP, progress } = calculateLevelProgress(totalXP);
   const hunterRank = getHunterRank(level, officialRank);
+
+  // Authentication Handlers
+  function handleAuthSuccess(authData) {
+    const profile = authData?.hunterProfile;
+    const hunterName = profile?.username || currentHunter;
+    setCurrentHunter(hunterName);
+    localStorage.setItem('ascend_current_hunter', hunterName);
+
+    if (profile) {
+      setTotalXP(profile.totalXp);
+      setStats({
+        strength: profile.strength,
+        agility: profile.agility,
+        vitality: profile.vitality,
+        intelligence: profile.intelligence,
+        perception: profile.perception,
+      });
+      setOfficialRank(profile.rank);
+      setStreak(profile.streak);
+    }
+
+    setIsAwakened(true);
+    localStorage.setItem('ascend_is_awakened', 'true');
+    setShowAuthModal(false);
+
+    loadHunterData(hunterName);
+  }
+
+  function handleLogout() {
+    ascendApi.logout();
+    localStorage.removeItem('ascend_token');
+    localStorage.removeItem('ascend_current_hunter');
+    setIsAwakened(false);
+    localStorage.setItem('ascend_is_awakened', 'false');
+    setShowAuthModal(false);
+  }
 
   // Complete Quest Handler with Optimistic UI & Atomic Rollback
   async function handleCompleteQuest(questId) {
@@ -225,7 +280,7 @@ export default function App() {
     // 3. Sync to Spring Boot Backend (Authoritative Server Engine)
     if (isBackendConnected) {
       try {
-        const result = await ascendApi.completeQuest(questId, 'ShadowMonarch');
+        const result = await ascendApi.completeQuest(questId, currentHunter);
         if (result?.hunterProfile) {
           // Reconcile with authoritative server state
           setTotalXP(result.hunterProfile.totalXp);
@@ -287,7 +342,7 @@ export default function App() {
           xpEarned: xpReward,
           idempotencyKey
         };
-        const result = await ascendApi.logWorkout(logPayload, 'ShadowMonarch');
+        const result = await ascendApi.logWorkout(logPayload, currentHunter);
 
         if (result?.hunterProfile) {
           // Authoritative server state takes absolute precedence
@@ -363,7 +418,7 @@ export default function App() {
           vitality: calibrationData.stats.vitality,
           intelligence: calibrationData.stats.intelligence,
           perception: calibrationData.stats.perception
-        }, 'ShadowMonarch');
+        }, currentHunter);
       } catch (err) {
         console.warn('Failed to dispatch awakening stats to backend; rolling back:', err);
         setStats(prevStats);
@@ -403,7 +458,7 @@ export default function App() {
           vitality: newStats.vitality,
           intelligence: newStats.intelligence,
           perception: newStats.perception
-        }, 'ShadowMonarch');
+        }, currentHunter);
       } catch (err) {
         console.warn('Failed to dispatch rank recalibration to backend; rolling back:', err);
         setOfficialRank(prevRank);
@@ -427,8 +482,10 @@ export default function App() {
     setShowCalibrationModal(false);
     setShowWalkthrough(false);
     setShowPromotionModal(false);
+    setShowAuthModal(false);
     setCurrentWorkoutDayIndex(0);
     setIsWorkoutCompletedToday(false);
+    setCurrentHunter('ShadowMonarch');
     setStats({ strength: 10, agility: 10, vitality: 10, intelligence: 10, perception: 10 });
     setActivePlan(null);
     setQuests([
@@ -441,7 +498,10 @@ export default function App() {
   return (
     <main>
       {!isAwakened ? (
-        <LandingPage onStartAwakening={() => setShowCalibrationModal(true)} />
+        <LandingPage
+          onStartAwakening={() => setShowCalibrationModal(true)}
+          onOpenAuth={() => setShowAuthModal(true)}
+        />
       ) : (
         <>
           <Header
@@ -449,6 +509,9 @@ export default function App() {
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             isBackendConnected={isBackendConnected}
+            currentHunter={currentHunter}
+            hunterRank={hunterRank}
+            onLogout={handleLogout}
           />
 
           {activeTab === 'dashboard' && (
@@ -528,6 +591,14 @@ export default function App() {
           isOpen={showCalibrationModal}
           onClose={() => setShowCalibrationModal(false)}
           onComplete={handleAwakeningComplete}
+        />
+      )}
+
+      {showAuthModal && (
+        <AuthModal
+          isOpen={showAuthModal}
+          onClose={() => setShowAuthModal(false)}
+          onAuthSuccess={handleAuthSuccess}
         />
       )}
     </main>

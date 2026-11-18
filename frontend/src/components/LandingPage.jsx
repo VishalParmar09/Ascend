@@ -1,6 +1,6 @@
 // src/components/LandingPage.jsx
 
-export default function LandingPage({ onStartAwakening }) {
+export default function LandingPage({ onStartAwakening, onOpenAuth }) {
   const pillars = [
     {
       icon: '📊',
@@ -27,9 +27,22 @@ export default function LandingPage({ onStartAwakening }) {
           <span className="brand-dot"></span>
           ASCEND // THE SYSTEM
         </div>
-        <button className="landing-nav-btn" onClick={onStartAwakening}>
-          AWAKEN NOW ⚡
-        </button>
+        <div className="landing-nav-actions">
+          <button
+            type="button"
+            className="landing-nav-login-btn"
+            onClick={() => onOpenAuth ? onOpenAuth('login') : onStartAwakening()}
+          >
+            ACCESS GATE (LOGIN)
+          </button>
+          <button
+            type="button"
+            className="landing-nav-btn"
+            onClick={() => onOpenAuth ? onOpenAuth('register') : onStartAwakening()}
+          >
+            AWAKEN NOW ⚡
+          </button>
+        </div>
       </nav>
 
       {/* Hero Section */}
@@ -44,7 +57,11 @@ export default function LandingPage({ onStartAwakening }) {
         </p>
 
         <div className="hero-actions">
-          <button className="hero-primary-btn" onClick={onStartAwakening}>
+          <button
+            type="button"
+            className="hero-primary-btn"
+            onClick={() => onOpenAuth ? onOpenAuth('register') : onStartAwakening()}
+          >
             INITIATE AWAKENING ASSESSMENT ⚔️
           </button>
         </div>

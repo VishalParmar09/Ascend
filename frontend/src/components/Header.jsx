@@ -1,6 +1,14 @@
 // src/components/Header.jsx
 
-export default function Header({ streak, activeTab, setActiveTab, isBackendConnected }) {
+export default function Header({
+  streak,
+  activeTab,
+  setActiveTab,
+  isBackendConnected,
+  currentHunter,
+  hunterRank,
+  onLogout
+}) {
   const tabs = [
     { id: 'dashboard', label: 'DASHBOARD' },
     { id: 'training', label: 'TRAINING PLAN' },
@@ -22,10 +30,38 @@ export default function Header({ streak, activeTab, setActiveTab, isBackendConne
           <h1 className="brand-title">THE SYSTEM</h1>
         </div>
 
-        {/* Hunter Streak Counter */}
-        <div id="tour-streak" className="streak-badge" title="Consecutive active days">
-          <span className="streak-icon">🔥</span>
-          <span className="streak-text">{streak} DAY STREAK</span>
+        {/* User Identity & Controls Dock */}
+        <div className="header-user-dock">
+          {/* Hunter Streak Counter */}
+          <div id="tour-streak" className="streak-badge" title="Consecutive active days">
+            <span className="streak-icon">🔥</span>
+            <span className="streak-text">{streak} DAY STREAK</span>
+          </div>
+
+          {/* Current Hunter License Tag */}
+          {currentHunter && (
+            <div className="hunter-profile-pill">
+              <span
+                className="hunter-rank-tag"
+                style={{ color: hunterRank?.color || '#38bdf8' }}
+              >
+                [{hunterRank?.rank || 'E'}-RANK]
+              </span>
+              <span className="hunter-codename">{currentHunter}</span>
+            </div>
+          )}
+
+          {/* Switch / Logout Action */}
+          {onLogout && (
+            <button
+              type="button"
+              className="hunter-logout-btn"
+              title="Logout or switch to another Hunter profile"
+              onClick={onLogout}
+            >
+              LOGOUT ⏻
+            </button>
+          )}
         </div>
       </div>
 
