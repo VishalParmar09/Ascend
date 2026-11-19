@@ -1,5 +1,6 @@
 package com.ascend.hunter.controller;
 
+import java.security.Principal;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -25,20 +26,22 @@ public class WorkoutController {
 
     private final WorkoutService workoutService;
 
-    // POST /api/v1/workouts/log?username=ShadowMonarch
     @PostMapping("/log")
     public ResponseEntity<WorkoutLogResult> logWorkout(
-            @RequestParam(defaultValue = "ShadowMonarch") String username,
+            Principal principal,
+            @RequestParam(required = false, defaultValue = "ShadowMonarch") String username,
             @RequestBody WorkoutLogRequest request) {
-        WorkoutLogResult result = workoutService.logWorkout(username, request);
+        String activeUser = (principal != null) ? principal.getName() : username;
+        WorkoutLogResult result = workoutService.logWorkout(activeUser, request);
         return ResponseEntity.status(HttpStatus.CREATED).body(result);
     }
 
-    // GET /api/v1/workouts/history?username=ShadowMonarch
     @GetMapping("/history")
     public ResponseEntity<List<WorkoutLogDto>> getHistory(
-            @RequestParam(defaultValue = "ShadowMonarch") String username) {
-        List<WorkoutLogDto> history = workoutService.getHistory(username);
+            Principal principal,
+            @RequestParam(required = false, defaultValue = "ShadowMonarch") String username) {
+        String activeUser = (principal != null) ? principal.getName() : username;
+        List<WorkoutLogDto> history = workoutService.getHistory(activeUser);
         return ResponseEntity.ok(history);
     }
 }

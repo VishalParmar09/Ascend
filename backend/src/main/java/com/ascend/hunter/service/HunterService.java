@@ -10,6 +10,7 @@ import com.ascend.hunter.dto.HunterProfileDto;
 import com.ascend.hunter.dto.RecalibrateRequest;
 import com.ascend.hunter.entity.Hunter;
 import com.ascend.hunter.entity.HunterRank;
+import com.ascend.hunter.exception.AntiCheatException;
 import com.ascend.hunter.repository.HunterRepository;
 
 import lombok.RequiredArgsConstructor;
@@ -97,9 +98,17 @@ public class HunterService {
     public HunterProfileDto recalibrate(String username, RecalibrateRequest request) {
         Hunter hunter = getHunter(username);
 
-        if (request.getRank() != null) {
-            hunter.setRank(request.getRank());
-        }
+        HunterRank targetRank = (request.getRank() != null) ? request.getRank() : hunter.getRank();
+        int maxStatCap = getMaxStatCapForRank(targetRank);
+
+        // Anti-cheat: prevent impossible stat leaps
+        validateStatWithinCap("STR", request.getStrength(), maxStatCap);
+        validateStatWithinCap("AGI", request.getAgility(), maxStatCap);
+        validateStatWithinCap("VIT", request.getVitality(), maxStatCap);
+        validateStatWithinCap("INT", request.getIntelligence(), maxStatCap);
+        validateStatWithinCap("PER", request.getPerception(), maxStatCap);
+
+        hunter.setRank(targetRank);
         hunter.setStrength(request.getStrength());
         hunter.setAgility(request.getAgility());
         hunter.setVitality(request.getVitality());
@@ -108,6 +117,27 @@ public class HunterService {
 
         Hunter saved = hunterRepository.save(hunter);
         return mapToDto(saved);
+    }
+
+    private int getMaxStatCapForRank(HunterRank rank) {
+        return switch (rank) {
+            case E -> 25;
+            case D -> 40;
+            case C -> 60;
+            case B -> 80;
+            case A -> 100;
+            case S -> 999;
+        };
+    }
+
+    private void validateStatWithinCap(String statName, int value, int cap) {
+        if (value < 10) {
+            throw new AntiCheatException(statName + " cannot be lower than baseline human threshold (10).");
+        }
+        if (value > cap) {
+            throw new AntiCheatException(statName + " (" + value + ") exceeds maximum authorization cap (" + cap
+                    + ") for current rank license.");
+        }
     }
 
     @Transactional

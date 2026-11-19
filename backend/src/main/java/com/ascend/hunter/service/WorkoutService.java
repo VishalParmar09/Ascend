@@ -14,6 +14,7 @@ import com.ascend.hunter.dto.WorkoutLogRequest;
 import com.ascend.hunter.entity.Hunter;
 import com.ascend.hunter.entity.Quest;
 import com.ascend.hunter.entity.WorkoutLog;
+import com.ascend.hunter.exception.AntiCheatException;
 import com.ascend.hunter.repository.QuestRepository;
 import com.ascend.hunter.repository.WorkoutLogRepository;
 
@@ -33,7 +34,27 @@ public class WorkoutService {
         Hunter hunter = hunterService.getHunter(username);
         LocalDate today = LocalDate.now();
 
-        // 1. Idempotency Check: Guard against duplicate requests, network retries, and multi-tab submissions
+        // --- ANTI-CHEAT LAYER 1: PHYSIOLOGICAL VALIDATION ---
+        int sets = request.getCompletedSets();
+        int duration = request.getDurationSeconds();
+
+        if (sets < 0 || duration < 0) {
+            throw new AntiCheatException("Negative values for sets or duration are physically impossible.");
+        }
+        if (sets > 60) {
+            throw new AntiCheatException("Workout exceeds maximum physiological set threshold (>60 sets).");
+        }
+        if (duration > 14400) {
+            throw new AntiCheatException("Workout duration exceeds maximum allowed time window (>4 hours).");
+        }
+        // Human threshold check: each legitimate exercise set requires at least 10
+        // seconds
+        if (sets > 0 && duration < (sets * 10)) {
+            throw new AntiCheatException(
+                    "Physiologically impossible tempo: " + sets + " sets completed in only " + duration + " seconds.");
+        }
+
+        // --- ANTI-CHEAT LAYER 2: IDEMPOTENCY CHECK ---
         if (request.getIdempotencyKey() != null && !request.getIdempotencyKey().isBlank()) {
             Optional<WorkoutLog> existingLog = workoutLogRepository.findByIdempotencyKey(request.getIdempotencyKey());
             if (existingLog.isPresent()) {
@@ -47,10 +68,10 @@ public class WorkoutService {
             }
         }
 
-        // 2. Ensure daily quests exist for today so the FITNESS quest is available
+        // Ensure today's daily quest roster exists in PostgreSQL
         questService.getTodayQuests(username);
 
-        // 3. Daily Workout XP Gate: Award XP ONLY if today's FITNESS quest was not already completed
+        // --- ANTI-CHEAT LAYER 3: AUTHORITATIVE XP CALCULATION ---
         Optional<Quest> fitnessQuestOpt = questRepository
                 .findByHunterIdAndQuestDateAndCategory(hunter.getId(), today, "FITNESS");
 
@@ -67,32 +88,26 @@ public class WorkoutService {
             completedQuestDto = mapQuestToDto(quest);
         }
 
-        // Determine XP to award: exactly 100 XP if completing the daily fitness quest; 0 XP for extra sessions today
-        int xpToAward = 0;
-        if (isFirstFitnessCompletionToday) {
-            xpToAward = request.getXpEarned() > 0 ? request.getXpEarned() : 100;
-        }
+        // The server alone decides XP (100 XP for first completion, 0 XP for extra
+        // sessions)
+        int verifiedXpToAward = isFirstFitnessCompletionToday ? 100 : 0;
 
-        // 4. Record Workout Session in Neon PostgreSQL
+        // Record verified session to Neon PostgreSQL
         WorkoutLog log = WorkoutLog.builder()
                 .workoutName(request.getWorkoutName())
-                .durationSeconds(request.getDurationSeconds())
-                .completedSets(request.getCompletedSets())
+                .durationSeconds(duration)
+                .completedSets(sets)
                 .totalSets(request.getTotalSets())
-                .xpEarned(xpToAward)
+                .xpEarned(verifiedXpToAward)
                 .idempotencyKey(request.getIdempotencyKey())
                 .hunter(hunter)
                 .build();
 
         WorkoutLog savedLog = workoutLogRepository.save(log);
 
-        // 5. Update Hunter's progression in the database
-        HunterProfileDto updatedProfile;
-        if (xpToAward > 0) {
-            updatedProfile = hunterService.addXp(username, xpToAward);
-        } else {
-            updatedProfile = hunterService.getProfile(username);
-        }
+        HunterProfileDto updatedProfile = (verifiedXpToAward > 0)
+                ? hunterService.addXp(username, verifiedXpToAward)
+                : hunterService.getProfile(username);
 
         return new WorkoutLogResult(mapToDto(savedLog), updatedProfile, completedQuestDto);
     }
@@ -133,5 +148,6 @@ public class WorkoutService {
     public record WorkoutLogResult(
             WorkoutLogDto workoutLog,
             HunterProfileDto hunterProfile,
-            QuestDto completedQuest) {}
+            QuestDto completedQuest) {
+    }
 }

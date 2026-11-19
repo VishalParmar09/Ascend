@@ -1,5 +1,6 @@
 package com.ascend.hunter.controller;
 
+import java.security.Principal;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
@@ -26,17 +27,20 @@ public class QuestController {
     // GET /api/v1/quests?username=ShadowMonarch
     @GetMapping
     public ResponseEntity<List<QuestDto>> getTodayQuests(
-            @RequestParam(defaultValue = "ShadowMonarch") String username) {
-        List<QuestDto> quests = questService.getTodayQuests(username);
+            Principal principal,
+            @RequestParam(required = false, defaultValue = "ShadowMonarch") String username) {
+        String activeUser = (principal != null) ? principal.getName() : username;
+        List<QuestDto> quests = questService.getTodayQuests(activeUser);
         return ResponseEntity.ok(quests);
     }
 
-    // PATCH /api/v1/quests/{id}/complete?username=ShadowMonarch
     @PatchMapping("/{id}/complete")
     public ResponseEntity<QuestCompletionResult> completeQuest(
             @PathVariable Long id,
-            @RequestParam(defaultValue = "ShadowMonarch") String username) {
-        QuestCompletionResult result = questService.completeQuest(username, id);
+            Principal principal,
+            @RequestParam(required = false, defaultValue = "ShadowMonarch") String username) {
+        String activeUser = (principal != null) ? principal.getName() : username;
+        QuestCompletionResult result = questService.completeQuest(activeUser, id);
         return ResponseEntity.ok(result);
     }
 }

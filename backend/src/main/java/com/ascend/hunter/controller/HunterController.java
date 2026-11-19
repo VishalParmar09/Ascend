@@ -1,5 +1,7 @@
 package com.ascend.hunter.controller;
 
+import java.security.Principal;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ascend.hunter.dto.AllocateStatRequest;
 import com.ascend.hunter.dto.HunterProfileDto;
 import com.ascend.hunter.dto.RecalibrateRequest;
+import com.ascend.hunter.exception.AntiCheatException;
 import com.ascend.hunter.service.HunterService;
 
 import lombok.RequiredArgsConstructor;
@@ -22,38 +25,49 @@ public class HunterController {
 
     private final HunterService hunterService;
 
-    // GET /api/v1/hunters/profile?username=JinWoo
+    // 1. GET /api/v1/hunters/profile
     @GetMapping("/profile")
     public ResponseEntity<HunterProfileDto> getProfile(
-            @RequestParam(defaultValue = "ShadowMonarch") String username) {
-        HunterProfileDto profile = hunterService.getProfile(username);
+            Principal principal,
+            @RequestParam(required = false, defaultValue = "ShadowMonarch") String username) {
+        String activeUser = (principal != null) ? principal.getName() : username;
+        HunterProfileDto profile = hunterService.getProfile(activeUser);
         return ResponseEntity.ok(profile);
     }
 
-    // POST /api/v1/hunters/allocate-stat?username=JinWoo
+    // 2. POST /api/v1/hunters/allocate-stat
     @PostMapping("/allocate-stat")
     public ResponseEntity<HunterProfileDto> allocateStat(
-            @RequestParam(defaultValue = "ShadowMonarch") String username,
+            Principal principal,
+            @RequestParam(required = false, defaultValue = "ShadowMonarch") String username,
             @RequestBody AllocateStatRequest request) {
-        HunterProfileDto updated = hunterService.allocateStat(username, request);
+        String activeUser = (principal != null) ? principal.getName() : username;
+        HunterProfileDto updated = hunterService.allocateStat(activeUser, request);
         return ResponseEntity.ok(updated);
     }
 
-    // POST /api/v1/hunters/add-xp?username=JinWoo&amount=150
-    @PostMapping("/add-xp")
-    public ResponseEntity<HunterProfileDto> addXp(
-            @RequestParam(defaultValue = "ShadowMonarch") String username,
-            @RequestParam int amount) {
-        HunterProfileDto updated = hunterService.addXp(username, amount);
-        return ResponseEntity.ok(updated);
-    }
-
-    // POST /api/v1/hunters/recalibrate?username=ShadowMonarch
+    // 3. POST /api/v1/hunters/recalibrate
     @PostMapping("/recalibrate")
     public ResponseEntity<HunterProfileDto> recalibrate(
-            @RequestParam(defaultValue = "ShadowMonarch") String username,
+            Principal principal,
+            @RequestParam(required = false, defaultValue = "ShadowMonarch") String username,
             @RequestBody RecalibrateRequest request) {
-        HunterProfileDto updated = hunterService.recalibrate(username, request);
+        String activeUser = (principal != null) ? principal.getName() : username;
+        HunterProfileDto updated = hunterService.recalibrate(activeUser, request);
+        return ResponseEntity.ok(updated);
+    }
+
+    // 4. POST /api/v1/hunters/add-xp (Dev testing endpoint with anti-cheat cap)
+    @PostMapping("/add-xp")
+    public ResponseEntity<HunterProfileDto> addXp(
+            Principal principal,
+            @RequestParam(required = false, defaultValue = "ShadowMonarch") String username,
+            @RequestParam int amount) {
+        String activeUser = (principal != null) ? principal.getName() : username;
+        if (amount <= 0 || amount > 500) {
+            throw new AntiCheatException("Direct XP injection must be positive and cannot exceed 500 XP per test pulse.");
+        }
+        HunterProfileDto updated = hunterService.addXp(activeUser, amount);
         return ResponseEntity.ok(updated);
     }
 }
