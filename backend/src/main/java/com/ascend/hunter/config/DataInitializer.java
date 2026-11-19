@@ -30,7 +30,7 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        // Ensure existing seeded hunters have valid BCrypt passwords and emails
+        // 1. Ensure existing ShadowMonarch has valid BCrypt credentials
         hunterRepository.findByUsername("ShadowMonarch").ifPresent(shadow -> {
             if (shadow.getPassword() == null || !shadow.getPassword().startsWith("$2")) {
                 shadow.setPassword(passwordEncoder.encode("hunter123"));
@@ -40,54 +40,45 @@ public class DataInitializer implements CommandLineRunner {
             }
         });
 
-        if (hunterRepository.count() > 0) {
-            log.info("System Database already contains hunters. Skipping full re-seed.");
+        // 2. Seed rival hunters for a populated global leaderboard if not already present
+        seedRivalHunter("ThomasAndre", "thomas@ascend.system", HunterRank.S, 85, 95000, 42, 120, 110, 130, 95, 105);
+        seedRivalHunter("ChaHaeIn", "cha@ascend.system", HunterRank.S, 64, 52000, 31, 88, 105, 82, 80, 94);
+        seedRivalHunter("BaekYoonho", "baek@ascend.system", HunterRank.A, 48, 26000, 19, 75, 68, 80, 60, 70);
+        seedRivalHunter("ChoiJongIn", "choi@ascend.system", HunterRank.A, 45, 22500, 14, 55, 60, 65, 92, 85);
+
+        if (hunterRepository.count() > 4) {
+            log.info("System Database already initialized with hunters. Skipping base quest re-seed.");
             return;
         }
 
-        log.info("System Database is empty. Seeding initial Hunter data into Neon PostgreSQL...");
+        log.info("System Database base seeding starting...");
 
-        // 1. Seed Veteran Hunter (D-Rank)
-        Hunter shadowMonarch = Hunter.builder()
-                .username("ShadowMonarch")
-                .email("shadow@ascend.system")
-                .password(passwordEncoder.encode("hunter123"))
-                .rank(HunterRank.D)
-                .level(12)
-                .totalXp(3850)
-                .streak(7)
-                .lastActiveDate(LocalDate.now())
-                .strength(28)
-                .agility(22)
-                .vitality(20)
-                .intelligence(16)
-                .perception(18)
-                .availablePoints(6)
-                .role("ROLE_HUNTER")
-                .build();
-        hunterRepository.save(shadowMonarch);
+        // 3. Seed Veteran Hunter (D-Rank)
+        Hunter shadowMonarch = hunterRepository.findByUsername("ShadowMonarch").orElseGet(() -> {
+            Hunter h = Hunter.builder()
+                    .username("ShadowMonarch")
+                    .email("shadow@ascend.system")
+                    .password(passwordEncoder.encode("hunter123"))
+                    .rank(HunterRank.D)
+                    .level(12)
+                    .totalXp(3850)
+                    .streak(7)
+                    .lastActiveDate(LocalDate.now())
+                    .strength(28)
+                    .agility(22)
+                    .vitality(20)
+                    .intelligence(16)
+                    .perception(18)
+                    .availablePoints(6)
+                    .role("ROLE_HUNTER")
+                    .build();
+            return hunterRepository.save(h);
+        });
 
-        // 2. Seed Beginner Hunter (E-Rank)
-        Hunter beginner = Hunter.builder()
-                .username("PlayerOne")
-                .email("player1@ascend.system")
-                .password(passwordEncoder.encode("hunter123"))
-                .rank(HunterRank.E)
-                .level(1)
-                .totalXp(0)
-                .streak(1)
-                .lastActiveDate(LocalDate.now())
-                .strength(10)
-                .agility(10)
-                .vitality(10)
-                .intelligence(10)
-                .perception(10)
-                .availablePoints(5)
-                .role("ROLE_HUNTER")
-                .build();
-        hunterRepository.save(beginner);
+        // 4. Seed Beginner Hunter (E-Rank)
+        seedRivalHunter("PlayerOne", "player1@ascend.system", HunterRank.E, 1, 0, 1, 10, 10, 10, 10, 10);
 
-        // 3. Seed Today's Quests for ShadowMonarch
+        // 5. Seed Quests for ShadowMonarch
         LocalDate today = LocalDate.now();
         List<Quest> quests = List.of(
                 Quest.builder()
@@ -129,7 +120,7 @@ public class DataInitializer implements CommandLineRunner {
         );
         questRepository.saveAll(quests);
 
-        // 4. Seed Workout History for ShadowMonarch
+        // 6. Seed Workout History for ShadowMonarch
         List<WorkoutLog> logs = List.of(
                 WorkoutLog.builder()
                         .workoutName("Upper Body Power Split")
@@ -150,6 +141,30 @@ public class DataInitializer implements CommandLineRunner {
         );
         workoutLogRepository.saveAll(logs);
 
-        log.info("Neon PostgreSQL Database seeding complete! Seeded 2 Hunters, 4 Quests, and 2 Workout Logs.");
+        log.info("Neon PostgreSQL Database seeding complete!");
+    }
+
+    private void seedRivalHunter(String username, String email, HunterRank rank, int level, int xp, int streak,
+                                 int str, int agi, int vit, int intel, int per) {
+        if (!hunterRepository.existsByUsername(username)) {
+            Hunter rival = Hunter.builder()
+                    .username(username)
+                    .email(email)
+                    .password(passwordEncoder.encode("hunter123"))
+                    .rank(rank)
+                    .level(level)
+                    .totalXp(xp)
+                    .streak(streak)
+                    .lastActiveDate(LocalDate.now())
+                    .strength(str)
+                    .agility(agi)
+                    .vitality(vit)
+                    .intelligence(intel)
+                    .perception(per)
+                    .role("ROLE_HUNTER")
+                    .build();
+            hunterRepository.save(rival);
+            log.info("Seeded rival hunter: {} (Rank {}, Level {})", username, rank, level);
+        }
     }
 }
