@@ -10,6 +10,7 @@ import SystemGuidedTour from './components/SystemGuidedTour';
 import EvaluationTab from './components/EvaluationTab';
 import TrainingPlanTab from './components/TrainingPlanTab';
 import PromotionExamModal from './components/PromotionExamModal';
+import LeaderboardTab from './components/LeaderboardTab';
 import { getHunterRank, calculateLevelProgress } from './utils/hunterMath';
 import { generateWorkoutPlan, scalePlanForRank } from './utils/trainingPlanGenerator';
 import { ascendApi } from './services/ascendApi';
@@ -441,7 +442,7 @@ export default function App() {
 
     setOfficialRank(newRank);
     setStats(newStats);
-    
+
     // Scale workout plan for progressive overload based on new rank tier
     if (activePlan) {
       const upgradedPlan = scalePlanForRank(activePlan, newRank);
@@ -468,7 +469,7 @@ export default function App() {
         return;
       }
     }
-    
+
     setShowPromotionModal(false);
   }
 
@@ -561,10 +562,10 @@ export default function App() {
           )}
 
           {activeTab === 'leaderboard' && (
-            <section className="leaderboard-placeholder">
-              <h2>GLOBAL HUNTER LEADERBOARD</h2>
-              <p>Hunter Registry synchronized with Association Database.</p>
-            </section>
+            <LeaderboardTab
+              currentHunter={currentHunter}
+              isBackendConnected={isBackendConnected}
+            />
           )}
 
           {showPromotionModal && (

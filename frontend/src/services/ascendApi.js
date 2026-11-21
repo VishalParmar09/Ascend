@@ -123,4 +123,19 @@ export const ascendApi = {
         if (!res.ok) throw new Error(`Failed to recalibrate: ${res.statusText}`);
         return await res.json();
     },
+
+    // 9. Fetch Paginated Leaderboard (with optional Rank tier filter)
+    async getLeaderboard(page = 0, size = 15, rank = null) {
+        let url = `${API_BASE_URL}/leaderboard?page=${page}&size=${size}`;
+        if (rank && rank !== 'ALL') {
+            url += `&rank=${encodeURIComponent(rank)}`;
+        }
+        const res = await fetch(url, {
+            headers: {
+                ...getAuthHeaders(),
+            },
+        });
+        if (!res.ok) throw new Error(`Failed to load leaderboard: ${res.statusText}`);
+        return await res.json();
+    },
 };
