@@ -99,6 +99,10 @@ public class HunterService {
         Hunter hunter = getHunter(username);
 
         HunterRank targetRank = (request.getRank() != null) ? request.getRank() : hunter.getRank();
+
+        // Anti-cheat: Validate legitimate rank progression and exam level prerequisites
+        validateRankPromotionEligibility(hunter, targetRank);
+
         int maxStatCap = getMaxStatCapForRank(targetRank);
 
         // Anti-cheat: prevent impossible stat leaps
@@ -117,6 +121,43 @@ public class HunterService {
 
         Hunter saved = hunterRepository.save(hunter);
         return mapToDto(saved);
+    }
+
+    private void validateRankPromotionEligibility(Hunter hunter, HunterRank targetRank) {
+        // Recalibration within existing rank is always permitted (stat reallocation)
+        if (targetRank == hunter.getRank()) {
+            return;
+        }
+
+        // Rank demotions are not permitted
+        if (targetRank.ordinal() < hunter.getRank().ordinal()) {
+            throw new AntiCheatException("Rank license cannot be downgraded through recalibration.");
+        }
+
+        // Must advance strictly one tier at a time (e.g. E -> D, D -> C)
+        if (targetRank.ordinal() > hunter.getRank().ordinal() + 1) {
+            throw new AntiCheatException("Illegal rank leap: Cannot advance from " + hunter.getRank()
+                    + "-Rank directly to " + targetRank + "-Rank without passing intermediate exams.");
+        }
+
+        // Enforce level requirements to challenge the target promotion tier
+        int requiredLevel = getRequiredLevelForPromotion(targetRank);
+        if (hunter.getLevel() < requiredLevel) {
+            throw new AntiCheatException("Hunter Level " + hunter.getLevel()
+                    + " does not meet minimum Level " + requiredLevel + " prerequisite to challenge the "
+                    + targetRank + "-Rank promotion exam.");
+        }
+    }
+
+    private int getRequiredLevelForPromotion(HunterRank rank) {
+        return switch (rank) {
+            case E -> 1;
+            case D -> 10;
+            case C -> 25;
+            case B -> 50;
+            case A -> 75;
+            case S -> 100;
+        };
     }
 
     private int getMaxStatCapForRank(HunterRank rank) {

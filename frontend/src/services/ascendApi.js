@@ -9,7 +9,7 @@ export const ascendApi = {
     // 1. Health check to detect if Spring Boot is online
     async checkHealth() {
         try {
-            const res = await fetch(`${API_BASE_URL}/system/status`, { signal: AbortSignal.timeout(2000) });
+            const res = await fetch(`${API_BASE_URL}/system/status`, { signal: AbortSignal.timeout(6000) });
             if (!res.ok) return false;
             const data = await res.json();
             return data.status === 'Online';
